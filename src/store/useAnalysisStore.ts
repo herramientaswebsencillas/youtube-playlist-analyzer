@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import type { AnalysisResult, ApiErrorCode, HistoryEntry } from '@/types';
 import { parsePlaylistInput } from '@/lib/youtube/parseInput';
 import { analyzePlaylist } from '@/lib/analysis/analyze';
+import { parseImportedAnalysis } from '@/lib/export/import';
 import { YouTubeApiError } from '@/lib/youtube/api';
 import {
   clearHistory,
@@ -37,6 +38,7 @@ interface AnalysisState {
   setInput: (value: string) => void;
   hydrateHistory: () => void;
   analyze: (rawInput?: string, options?: { force?: boolean }) => Promise<void>;
+  importAnalysis: (text: string) => void;
   openFromHistory: (playlistId: string) => void;
   refresh: (playlistId: string) => Promise<void>;
   removeHistory: (playlistId: string) => void;
@@ -49,18 +51,19 @@ function runAnalysis(
   playlistId: string,
   force: boolean,
 ): Promise<void> {
-  // 1) Intentar caché salvo que se fuerce la actualización.
-  if (!force) {
-    const cached = loadAnalysis(playlistId);
-    if (cached) {
-      set({ status: 'success', result: cached, fromCache: true, error: null });
-      return Promise.resolve();
-    }
+  // El análisis anterior sirve tanto de caché como de fuente para recuperar
+  // los títulos de videos que ahora estén eliminados/privados.
+  const previous = loadAnalysis(playlistId);
+
+  // 1) Usar caché salvo que se fuerce la actualización.
+  if (!force && previous) {
+    set({ status: 'success', result: previous, fromCache: true, error: null });
+    return Promise.resolve();
   }
 
-  // 2) Consultar la API.
+  // 2) Consultar la API (pasando el previo para recuperar títulos).
   set({ status: 'loading', error: null, fromCache: false });
-  return analyzePlaylist(playlistId)
+  return analyzePlaylist(playlistId, previous)
     .then((result) => {
       saveAnalysis(result);
       set({
@@ -104,6 +107,33 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       return;
     }
     await runAnalysis(set, parsed.playlistId, options?.force ?? false);
+  },
+
+  importAnalysis: (text) => {
+    try {
+      const result = parseImportedAnalysis(text);
+      // Guardar en caché e historial para futuras recuperaciones de títulos.
+      saveAnalysis(result);
+      set({
+        status: 'success',
+        result,
+        fromCache: true,
+        error: null,
+        history: loadHistory(),
+        input: result.info.playlistId,
+      });
+    } catch (err) {
+      set({
+        status: 'error',
+        error: {
+          code: 'invalid-input',
+          message:
+            err instanceof Error
+              ? err.message
+              : 'No se pudo importar el archivo de análisis.',
+        },
+      });
+    }
   },
 
   openFromHistory: (playlistId) => {

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { PlaylistInput } from './PlaylistInput';
+import { ImportButton } from './ImportButton';
 import { LoadingIndicator } from './LoadingIndicator';
 import { ErrorMessage } from './ErrorMessage';
 import { AnalysisSummary } from './AnalysisSummary';
@@ -52,6 +53,14 @@ export function AnalyzerApp() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <main className="space-y-6">
           <PlaylistInput />
+
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <ImportButton />
+            <span className="text-xs text-muted">
+              Restaura un análisis exportado (JSON) para recuperar títulos de
+              videos eliminados.
+            </span>
+          </div>
 
           {status === 'error' && error && <ErrorMessage error={error} />}
           {status === 'loading' && <LoadingIndicator />}

@@ -166,9 +166,10 @@ export async function fetchAllPlaylistItems(
 }
 
 /**
- * Verifica qué IDs de video existen realmente y devuelve sus estados.
- * Los IDs ausentes en la respuesta corresponden a videos eliminados o
- * inaccesibles. Se consulta en lotes de hasta 50 para respetar la API.
+ * Verifica qué IDs de video existen realmente y devuelve sus datos
+ * (estado, snippet con descripción/canal y temas). Los IDs ausentes en la
+ * respuesta corresponden a videos eliminados o inaccesibles. Se consulta en
+ * lotes de hasta 50. Incluir más `part` no incrementa el costo de cuota.
  */
 export async function fetchVideoStatuses(
   videoIds: string[],
@@ -179,7 +180,7 @@ export async function fetchVideoStatuses(
   for (let i = 0; i < unique.length; i += MAX_PAGE_SIZE) {
     const batch = unique.slice(i, i + MAX_PAGE_SIZE);
     const data = await apiGet<YtVideosResponse>('videos', {
-      part: 'status,contentDetails',
+      part: 'snippet,status,topicDetails',
       id: batch.join(','),
       maxResults: String(MAX_PAGE_SIZE),
     });

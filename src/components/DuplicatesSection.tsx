@@ -7,9 +7,15 @@ import { EmptyState } from './primitives';
 import { VideoItem } from './VideoItem';
 
 /** Un grupo de duplicados, expandible/colapsable. */
-function Group({ group, defaultOpen }: { group: DuplicateGroup; defaultOpen: boolean }) {
+function Group({
+  group,
+  defaultOpen,
+}: {
+  group: DuplicateGroup;
+  defaultOpen: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
-  const panelId = `dup-${group.normalizedTitle.replace(/\s+/g, '-')}`;
+  const panelId = `dup-${group.key.replace(/[^a-z0-9]+/gi, '-')}`;
 
   return (
     <div className="rounded-xl border border-line bg-surface">
@@ -24,8 +30,13 @@ function Group({ group, defaultOpen }: { group: DuplicateGroup; defaultOpen: boo
           <span className="block truncate font-medium text-ink" title={group.label}>
             {group.label}
           </span>
-          <span className="text-xs text-warn">
-            {group.videos.length} elementos repetidos
+          <span className="flex flex-wrap items-center gap-x-2 text-xs">
+            {group.artist && (
+              <span className="text-ink/60">{group.artist}</span>
+            )}
+            <span className="text-warn">
+              {group.videos.length} elementos repetidos
+            </span>
           </span>
         </span>
         <svg
@@ -50,7 +61,7 @@ function Group({ group, defaultOpen }: { group: DuplicateGroup; defaultOpen: boo
   );
 }
 
-/** Sección de canciones repetidas, agrupadas por título normalizado. */
+/** Sección de canciones repetidas, agrupadas por título + artista. */
 export function DuplicatesSection() {
   const duplicates = useAnalysisStore((s) => s.result?.duplicates ?? []);
 
@@ -62,11 +73,7 @@ export function DuplicatesSection() {
       ) : (
         <div className="space-y-3">
           {duplicates.map((group, index) => (
-            <Group
-              key={group.normalizedTitle}
-              group={group}
-              defaultOpen={index === 0}
-            />
+            <Group key={group.key} group={group} defaultOpen={index === 0} />
           ))}
         </div>
       )}

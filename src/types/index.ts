@@ -12,8 +12,21 @@ export interface PlaylistVideo {
   videoId: string;
   /** Título original tal como lo reporta la API. */
   title: string;
-  /** Título normalizado usado para detectar duplicados. */
+  /** Título "limpio" (canción) usado para normalizar. Solo interno. */
+  songTitle: string;
+  /** Título normalizado de la canción. */
   normalizedTitle: string;
+  /** Artista mostrado (mejor estimación), en su forma original. */
+  artist: string | null;
+  /** Artista normalizado, usado en la clave de duplicados. */
+  normalizedArtist: string;
+  /** Clave compuesta (título + artista) usada para agrupar duplicados. */
+  dedupKey: string;
+  /**
+   * Título que el video tenía en un análisis previo (recuperado de la caché)
+   * cuando ahora aparece como eliminado/privado. `null` si no se conoce.
+   */
+  previousTitle: string | null;
   /** URL pública del video. */
   url: string;
   /** URL de la miniatura (cuando existe). */
@@ -28,12 +41,14 @@ export interface PlaylistVideo {
   reason: string;
 }
 
-/** Grupo de videos cuyo título normalizado coincide. */
+/** Grupo de videos cuya combinación título+artista coincide. */
 export interface DuplicateGroup {
-  /** Título normalizado que comparten los elementos. */
-  normalizedTitle: string;
-  /** Etiqueta legible para mostrar (primer título original del grupo). */
+  /** Clave de agrupación (título+artista normalizados). */
+  key: string;
+  /** Etiqueta legible del título (primer título original del grupo). */
   label: string;
+  /** Artista mostrado del grupo (cuando se pudo determinar). */
+  artist: string | null;
   /** Elementos que pertenecen al grupo. */
   videos: PlaylistVideo[];
 }

@@ -1,5 +1,6 @@
 /**
- * Normalización de títulos para la detección de duplicados.
+ * Normalización de títulos y extracción/normalización de artistas para la
+ * detección de duplicados.
  *
  * Diseñada de forma desacoplada y configurable: la lista de patrones vive en
  * `NORMALIZATION_CONFIG`, de modo que se puede ajustar sin tocar el algoritmo.
@@ -63,7 +64,6 @@ function escapeRegExp(value: string): string {
  */
 function stripTagGroups(title: string, keywords: string[]): string {
   const keywordAlt = keywords.map(escapeRegExp).join('|');
-  // (...) [...] {...} que contengan alguna keyword como palabra completa.
   const groupPattern = new RegExp(
     `[([{][^)\\]}]*\\b(?:${keywordAlt})\\b[^)\\]}]*[)\\]}]`,
     'gi',
@@ -74,8 +74,6 @@ function stripTagGroups(title: string, keywords: string[]): string {
 /**
  * Elimina tokens de ruido que aparecen al final del título (p. ej. "... HD",
  * "... Remastered"), incluyendo separadores previos como `-` o `|`.
- * Es conservador: sólo recorta al final para no romper títulos donde la
- * palabra forma parte legítima del nombre (p. ej. "Live and Let Die").
  */
 function stripTrailingTags(title: string, keywords: string[]): string {
   const keywordAlt = keywords.map(escapeRegExp).join('|');
@@ -98,9 +96,9 @@ function removeDiacritics(value: string): string {
 }
 
 /**
- * Normaliza un título: elimina etiquetas, símbolos irrelevantes, acentos y
- * diferencias de mayúsculas/espaciado. El resultado se usa como clave de
- * agrupación de duplicados (no para mostrar).
+ * Normaliza un título de canción: elimina etiquetas, símbolos irrelevantes,
+ * acentos y diferencias de mayúsculas/espaciado. El resultado se usa como
+ * parte de la clave de agrupación de duplicados (no para mostrar).
  */
 export function normalizeTitle(
   rawTitle: string,
@@ -111,17 +109,141 @@ export function normalizeTitle(
   title = stripTagGroups(title, config.tagKeywords);
   title = stripTrailingTags(title, config.tagKeywords);
 
-  if (config.stripDiacritics) {
-    title = removeDiacritics(title);
-  }
-  if (config.caseInsensitive) {
-    title = title.toLowerCase();
-  }
+  if (config.stripDiacritics) title = removeDiacritics(title);
+  if (config.caseInsensitive) title = title.toLowerCase();
 
-  // Sustituye cualquier carácter que no sea alfanumérico por un espacio.
   title = title.replace(/[^\p{L}\p{N}]+/gu, ' ');
-  // Colapsa espacios duplicados y recorta extremos.
   title = title.replace(/\s+/g, ' ').trim();
 
   return title;
+}
+
+/**
+ * Normaliza un nombre de artista para compararlo: quita sufijos típicos
+ * ("- Topic", "VEVO"), acentos, mayúsculas y símbolos.
+ */
+export function normalizeArtist(
+  artist: string | null | undefined,
+  config: NormalizationConfig = NORMALIZATION_CONFIG,
+): string {
+  if (!artist) return '';
+  let value = artist;
+  value = value.replace(/\s*-\s*topic\s*$/i, '');
+  value = value.replace(/vevo\s*$/i, '');
+  if (config.stripDiacritics) value = removeDiacritics(value);
+  if (config.caseInsensitive) value = value.toLowerCase();
+  value = value.replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  return value;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Extracción de artista + canción                                    */
+/* ------------------------------------------------------------------ */
+
+export interface TrackMeta {
+  /** Título de la canción (mejor estimación, en su forma original). */
+  title: string;
+  /** Artista (mejor estimación, en su forma original) o `null`. */
+  artist: string | null;
+}
+
+const PROVIDED_BY = /provided to youtube by/i;
+const MIDDLE_DOT = '·';
+
+/**
+ * Extrae canción + artista del bloque autogenerado de los Art Tracks:
+ *   Provided to YouTube by <distribuidor>
+ *
+ *   <Canción> · <Artista> · <Artista 2>
+ *
+ *   <Álbum>
+ */
+function fromDescription(description?: string | null): TrackMeta | null {
+  if (!description) return null;
+  const lines = description.split('\n').map((l) => l.trim());
+  const start = lines.findIndex((l) => PROVIDED_BY.test(l));
+  if (start === -1) return null;
+
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!line) continue;
+    if (line.includes(MIDDLE_DOT)) {
+      const parts = line
+        .split(MIDDLE_DOT)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (parts.length >= 2) {
+        const [song, ...artists] = parts;
+        return { title: song ?? '', artist: artists.join(', ') };
+      }
+    }
+    // La primera línea no vacía no tiene el formato esperado: abandonamos.
+    break;
+  }
+  return null;
+}
+
+/** Si el canal es "Artista - Topic", devuelve el artista (canción = título). */
+function fromTopicChannel(
+  title: string,
+  channelTitle?: string | null,
+): TrackMeta | null {
+  if (!channelTitle) return null;
+  const match = channelTitle.match(/^(.*?)\s*-\s*topic\s*$/i);
+  if (!match || !match[1]) return null;
+  return { title, artist: match[1].trim() };
+}
+
+/**
+ * Interpreta el patrón "Artista - Canción". Conservador: ignora el caso en
+ * que el lado derecho es sólo una etiqueta (p. ej. "Live", "Remastered").
+ */
+function fromTitlePattern(
+  title: string,
+  config: NormalizationConfig,
+): TrackMeta | null {
+  const match = title.match(/^(.{1,80}?)\s+[-–—]\s+(.+)$/);
+  if (!match || !match[1] || !match[2]) return null;
+  const right = match[2].trim();
+  const rightNorm = normalizeTitle(right, config);
+  // Evita partir "X - Live" / "X - Remastered" tomando la etiqueta como canción.
+  if (!rightNorm) return null;
+  if (config.tagKeywords.includes(rightNorm)) return null;
+  return { artist: match[1].trim(), title: right };
+}
+
+/**
+ * Determina canción + artista combinando, por prioridad de fiabilidad:
+ *   1) Bloque "Provided to YouTube by" de la descripción (música oficial).
+ *   2) Canal "Artista - Topic".
+ *   3) Patrón "Artista - Canción" en el título.
+ *   4) Fallback: el canal como artista y el título tal cual.
+ */
+export function deriveTrackMeta(
+  input: {
+    title: string;
+    channelTitle?: string | null;
+    description?: string | null;
+  },
+  config: NormalizationConfig = NORMALIZATION_CONFIG,
+): TrackMeta {
+  const title = input.title ?? '';
+  return (
+    fromDescription(input.description) ??
+    fromTopicChannel(title, input.channelTitle) ??
+    fromTitlePattern(title, config) ?? {
+      title,
+      artist: input.channelTitle ?? null,
+    }
+  );
+}
+
+/** Construye la clave de duplicados a partir de título y artista normalizados. */
+export function buildDedupKey(
+  normalizedTitle: string,
+  normalizedArtist: string,
+): string {
+  return normalizedArtist
+    ? `${normalizedTitle}|@|${normalizedArtist}`
+    : normalizedTitle;
 }

@@ -114,10 +114,26 @@ export interface YtVideoContentDetails {
   regionRestriction?: YtRegionRestriction;
 }
 
+export interface YtVideoSnippet {
+  title?: string;
+  description?: string;
+  channelTitle?: string;
+  tags?: string[];
+  categoryId?: string;
+  thumbnails?: YtThumbnails;
+}
+
+export interface YtTopicDetails {
+  topicCategories?: string[];
+  relevantTopicIds?: string[];
+}
+
 export interface YtVideo {
   id: string;
+  snippet?: YtVideoSnippet;
   status?: YtVideoStatus;
   contentDetails?: YtVideoContentDetails;
+  topicDetails?: YtTopicDetails;
 }
 
 export interface YtVideosResponse extends YtErrorBody {
