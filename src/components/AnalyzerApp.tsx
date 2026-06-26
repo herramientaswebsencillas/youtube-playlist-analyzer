@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { PlaylistInput } from './PlaylistInput';
 import { ImportButton } from './ImportButton';
@@ -29,9 +30,17 @@ export function AnalyzerApp() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       <header className="mb-8">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-brand-ink">
-          YouTube · YouTube Music
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-brand-ink">
+            YouTube · YouTube Music
+          </p>
+          <Link
+            href="/acerca-de"
+            className="shrink-0 text-xs font-medium text-muted transition hover:text-brand-ink"
+          >
+            Acerca de
+          </Link>
+        </div>
         <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           Analizador de playlists
         </h1>
@@ -88,9 +97,32 @@ export function AnalyzerApp() {
         </aside>
       </div>
 
-      <footer className="mt-12 border-t border-line pt-6 text-xs text-muted">
-        Procesamiento 100% en el navegador. Los análisis se guardan localmente
-        para evitar consultas repetidas a la API.
+      <footer className="mt-12 space-y-2 border-t border-line pt-6 text-xs text-muted">
+        <p>
+          Procesamiento 100% en el navegador. Los análisis se guardan localmente
+          para evitar consultas repetidas a la API.
+        </p>
+        <p className="text-muted/70">
+          Protegido por reCAPTCHA; aplican la{' '}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition hover:text-ink"
+          >
+            Política de Privacidad
+          </a>{' '}
+          y los{' '}
+          <a
+            href="https://policies.google.com/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition hover:text-ink"
+          >
+            Términos del Servicio
+          </a>{' '}
+          de Google.
+        </p>
       </footer>
     </div>
   );

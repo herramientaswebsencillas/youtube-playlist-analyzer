@@ -9,6 +9,8 @@ const HINTS: Partial<Record<AppError['code'], string>> = {
   forbidden:
     'Verifica la clave y, si usas restricciones por dominio (HTTP referrers), que incluya el dominio actual.',
   'rate-limit': 'Espera unos segundos y vuelve a intentarlo.',
+  'captcha-failed':
+    'No se completó la verificación anti-bots. Vuelve a intentarlo y resuelve el reto de reCAPTCHA si aparece.',
 };
 
 /** Mensaje de error claro y accionable. */

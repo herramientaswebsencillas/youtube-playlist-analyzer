@@ -12,6 +12,7 @@ import { parsePlaylistInput } from '@/lib/youtube/parseInput';
 import { analyzePlaylist } from '@/lib/analysis/analyze';
 import { parseImportedAnalysis } from '@/lib/export/import';
 import { YouTubeApiError } from '@/lib/youtube/api';
+import { CaptchaError, executeCaptcha } from '@/lib/captcha/recaptcha';
 import {
   clearHistory,
   deleteAnalysis,
@@ -62,8 +63,12 @@ function runAnalysis(
   }
 
   // 2) Consultar la API (pasando el previo para recuperar títulos).
+  // Antes de tocar la API se exige superar el reto reCAPTCHA: así solo se
+  // verifica a un humano cuando realmente se va a consumir cuota, no en los
+  // aciertos de caché.
   set({ status: 'loading', error: null, fromCache: false });
-  return analyzePlaylist(playlistId, previous)
+  return executeCaptcha()
+    .then(() => analyzePlaylist(playlistId, previous))
     .then((result) => {
       saveAnalysis(result);
       set({
@@ -75,10 +80,14 @@ function runAnalysis(
       });
     })
     .catch((err: unknown) => {
-      const error: AppError =
-        err instanceof YouTubeApiError
-          ? { code: err.code, message: err.message }
-          : { code: 'unknown', message: 'Ocurrió un error inesperado.' };
+      let error: AppError;
+      if (err instanceof YouTubeApiError) {
+        error = { code: err.code, message: err.message };
+      } else if (err instanceof CaptchaError) {
+        error = { code: 'captcha-failed', message: err.message };
+      } else {
+        error = { code: 'unknown', message: 'Ocurrió un error inesperado.' };
+      }
       set({ status: 'error', error, fromCache: false });
     });
 }

@@ -94,5 +94,6 @@ export type ApiErrorCode =
   | 'quota-exceeded'
   | 'rate-limit'
   | 'forbidden'
+  | 'captcha-failed'
   | 'network'
   | 'unknown';
