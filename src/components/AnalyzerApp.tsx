@@ -100,7 +100,7 @@ export function AnalyzerApp() {
       <footer className="mt-12 space-y-2 border-t border-line pt-6 text-xs text-muted">
         <p>
           Procesamiento 100% en el navegador. Los análisis se guardan localmente
-          para evitar consultas repetidas a la API.
+          para consulta.
         </p>
         <p className="text-muted/70">
           Protegido por reCAPTCHA; aplican la{' '}

@@ -91,7 +91,7 @@ export default function AboutPage() {
             títulos de videos que desaparezcan más adelante.
           </Feature>
           <Feature title="100% en tu navegador">
-            Se conecta únicamente en modo lectura a la API de YouTube. Tus datos no se
+            Se conecta únicamente en modo lectura a YouTube. Tus datos no se
             envían a ningún backend propio porque, sencillamente, no existe.
           </Feature>
         </div>
@@ -123,8 +123,7 @@ export default function AboutPage() {
           Verificación anti-bots
         </h2>
         <p className="text-sm leading-relaxed text-muted">
-          Para evitar el uso automatizado y proteger la cuota compartida de la
-          API, cada análisis que consulta a YouTube pasa primero por una
+          Para evitar el uso automatizado, cada análisis que consulta a YouTube pasa primero por una
           verificación reCAPTCHA. Normalmente es invisible; solo verás un reto
           si el sistema detecta actividad sospechosa. Los resultados que se leen
           desde el historial local no requieren verificación.
