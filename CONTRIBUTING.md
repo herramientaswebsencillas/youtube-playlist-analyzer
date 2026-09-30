@@ -16,8 +16,9 @@
 - `main` siempre está desplegada: cada merge publica el sitio.
 - Trabaja en una rama (`feat/...`, `fix/...`, `docs/...`) y abre un pull
   request hacia `main`.
-- El pipeline ejecuta tipos, lint, pruebas y auditoría de dependencias. Un PR
-  solo se integra con todos los checks en verde.
+- El pipeline ejecuta tipos, lint, pruebas, revisión de vulnerabilidades de
+  dependencias (`npm audit`) y build. Un PR solo se integra con todos los
+  checks en verde.
 
 ## Antes de abrir el PR
 

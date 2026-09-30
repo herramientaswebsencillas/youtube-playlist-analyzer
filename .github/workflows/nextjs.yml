@@ -1,7 +1,7 @@
 # Verifica, compila y publica el sitio estático en GitHub Pages.
 #
-# - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas y
-#   auditoría de dependencias).
+# - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas,
+#   vulnerabilidades de dependencias con `npm audit` y build).
 # - En pushes a main, el despliegue solo ocurre si la verificación pasa.
 #
 name: CI / Deploy to Pages
