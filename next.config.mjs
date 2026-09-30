@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 
 // Exportación estática compatible con GitHub Pages.
-// Si el sitio se publica en un subdirectorio (p. ej. https://usuario.github.io/repo),
-// descomenta y ajusta basePath/assetPrefix con el nombre del repositorio.
+// El sitio se publica en un subdirectorio (https://usuario.github.io/repo), por eso
+// basePath/assetPrefix llevan el nombre del repositorio. Ajústalos si cambia.
 const nextConfig = {
   output: 'export',
   basePath: '/youtube-playlist-analyzer',
