@@ -1,0 +1,21 @@
+# Actualizaciones automáticas de dependencias. Las actualizaciones menores y
+# de parche se agrupan en un solo PR para no saturar el repositorio; las
+# mayores llegan por separado para revisarlas con calma.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      actions:
+        patterns: ["*"]

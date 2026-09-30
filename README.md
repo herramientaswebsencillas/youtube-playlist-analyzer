@@ -68,18 +68,59 @@ a cada consulta a la API para evitar el consumo automatizado de la cuota:
 
 ## Despliegue
 
-El repositorio incluye un workflow de GitHub Actions (`.github/workflows`) que
-compila y publica el sitio en GitHub Pages. Define los valores en
-**Settings → Secrets and variables → Actions**:
+El workflow `.github/workflows/nextjs.yml` verifica el proyecto (tipos, lint,
+pruebas y `npm audit`) en cada pull request y en cada push a `main`. Solo si la
+verificación pasa, compila y publica el sitio en GitHub Pages. Define los
+valores en **Settings → Secrets and variables → Actions**:
 
 - `NEXT_PUBLIC_YOUTUBE_API_KEY`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
+
+Además, `.github/workflows/codeql.yml` ejecuta análisis de seguridad con CodeQL
+y `.github/dependabot.yml` propone actualizaciones mensuales de dependencias.
+
+### Configuración recomendada de la clave en Google Cloud
+
+Como la clave es pública, su protección real está en Google Cloud Console
+(*APIs y servicios → Credenciales* y *Cuotas*):
+
+1. **Restricción de aplicación → Referentes HTTP:** solo
+   `https://herramientaswebsencillas.github.io/*` (y `http://localhost:3000/*`
+   en una clave aparte para desarrollo).
+2. **Restricción de API:** solo *YouTube Data API v3*.
+3. **Cuotas:** además del límite diario, fija un límite de consultas *por
+   minuto por usuario* y crea una alerta de consumo en Cloud Monitoring.
+
+La restricción por referente frena el uso desde otros sitios web, pero un
+cliente fuera del navegador puede falsificar esa cabecera. Por eso los límites
+de cuota son la segunda barrera.
+
+## Operación
+
+**Rotar la clave de la API** (si se filtra o se detecta abuso):
+
+1. En Google Cloud Console, crea una clave nueva con las restricciones de
+   arriba.
+2. Actualiza el secret `NEXT_PUBLIC_YOUTUBE_API_KEY` en GitHub.
+3. Vuelve a ejecutar el workflow (*Actions → CI / Deploy to Pages → Run
+   workflow*) y comprueba el sitio.
+4. Elimina la clave anterior.
+
+**Cuota agotada (`quota-exceeded`):** la cuota se reinicia a medianoche, hora
+del Pacífico. Mientras tanto, el historial local sigue funcionando. Si ocurre a
+menudo, revisa en *Cuotas* si el consumo viene de un abuso y considera bajar
+el límite por minuto.
+
+**Volver a una versión anterior:** revierte el commit problemático con
+`git revert` y haz push a `main`; el workflow redepliega automáticamente. En
+una emergencia, también puedes volver a ejecutar desde *Actions* el
+workflow de un commit anterior.
 
 ## Estructura
 
 ```
 src/
-├─ app/                 # Layout, página principal, "Acerca de" y estilos globales
+├─ app/                 # Layout, página principal, "Acerca de", "Privacidad" y estilos
 ├─ components/          # Componentes de interfaz
 ├─ store/               # Estado global (Zustand)
 ├─ types/               # Tipos del dominio
@@ -89,7 +130,8 @@ src/
    ├─ export/           # Exportación / importación (JSON)
    ├─ captcha/          # Verificación reCAPTCHA (anti-bots)
    ├─ storage/          # Caché e historial en LocalStorage
-   └─ utils/            # Saneamiento / escape
+   ├─ testing/          # Datos de prueba compartidos por los tests
+   └─ utils/            # Validación de URLs externas
 ```
 
 La lógica de negocio (normalización, extracción de artista, detección de
@@ -98,15 +140,33 @@ es independiente de la interfaz, de modo que puede evolucionar sin afectar la UI
 
 ## Desarrollo
 
+Requiere Node.js 22 o superior (la versión exacta está en `.nvmrc`).
+
 ```bash
-npm install
+npm ci             # instala las dependencias exactas del lockfile
 npm run dev        # entorno de desarrollo
 npm run build      # exportación estática a ./out
 npm run typecheck  # verificación de tipos
+npm run lint       # ESLint
+npm test           # pruebas unitarias (Vitest)
 ```
+
+Las pruebas viven junto al código (`src/**/*.test.ts`) y cubren la lógica de
+`src/lib`: parseo de URLs, normalización, duplicados, importación, historial y
+el cliente de la API con `fetch` simulado.
+
+Para contribuir, consulta [CONTRIBUTING.md](CONTRIBUTING.md). Para reportar
+vulnerabilidades, [SECURITY.md](SECURITY.md).
+
+## Privacidad
+
+La aplicación no tiene servidor ni analítica: los análisis se guardan solo en
+el LocalStorage del navegador. Los servicios de terceros (YouTube Data API y
+Google reCAPTCHA) se describen en la página
+[«Privacidad»](https://herramientaswebsencillas.github.io/youtube-playlist-analyzer/privacidad/).
 
 ## Licencia
 
-Proyecto open source. El código está disponible en
+Proyecto open source bajo licencia [MIT](LICENSE). El código está disponible en
 [GitHub](https://github.com/herramientaswebsencillas/youtube-playlist-analyzer);
 las contribuciones, reportes de errores y forks son bienvenidos.
