@@ -1,9 +1,9 @@
 /**
  * Utilidades de saneamiento.
  *
- * En React el contenido se escapa automáticamente al renderizar texto, pero
- * estas funciones son necesarias al construir cadenas crudas (export HTML/CSV)
- * y al validar URLs externas antes de usarlas como `src`/`href`.
+ * React escapa automáticamente el texto al renderizar, pero no valida los
+ * atributos `href`/`src`: las URLs que llegan de la API o de un archivo
+ * importado deben pasar por `safeYouTubeUrl` antes de usarse.
  */
 
 /** Hosts permitidos para enlaces y miniaturas provenientes de la API. */
@@ -16,16 +16,6 @@ const SAFE_URL_HOSTS = [
   'img.youtube.com',
   'yt3.ggpht.com',
 ];
-
-/** Escapa caracteres con significado en HTML para evitar inyección. */
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * Devuelve la URL sólo si usa http(s) y apunta a un host de YouTube conocido.

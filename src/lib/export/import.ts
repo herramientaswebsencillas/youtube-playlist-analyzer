@@ -15,12 +15,20 @@ import type {
   PlaylistVideo,
 } from '@/types';
 import { videoUrl } from '@/lib/utils/sanitize';
+import { isPlaylistId } from '@/lib/youtube/parseInput';
 import {
   buildDedupKey,
   normalizeArtist,
   normalizeTitle,
 } from '@/lib/analysis/normalize';
 import { findDuplicates } from '@/lib/analysis/duplicates';
+
+/**
+ * Tamaño máximo aceptado para un archivo importado. Una exportación de una
+ * playlist de 5 000 elementos ronda los 5 MB; el margen evita congelar la
+ * pestaña al leer archivos arbitrariamente grandes.
+ */
+export const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
 
 const AVAILABILITIES: Availability[] = [
   'available',
@@ -45,6 +53,10 @@ function parseInfo(source: Record<string, unknown>): PlaylistInfo {
   const title = asString(source.title);
   if (!playlistId || !title) {
     throw new Error('El archivo no contiene datos válidos de la playlist.');
+  }
+  // El ID se usa como clave de LocalStorage y en llamadas a la API.
+  if (!isPlaylistId(playlistId)) {
+    throw new Error('El archivo contiene un ID de playlist no válido.');
   }
   const reported = source.reportedItemCount;
   return {

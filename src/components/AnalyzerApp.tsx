@@ -20,6 +20,7 @@ export function AnalyzerApp() {
   const status = useAnalysisStore((s) => s.status);
   const error = useAnalysisStore((s) => s.error);
   const result = useAnalysisStore((s) => s.result);
+  const storageFailed = useAnalysisStore((s) => s.storageFailed);
   const hydrateHistory = useAnalysisStore((s) => s.hydrateHistory);
 
   // Cargar el historial guardado al montar (sólo en el navegador).
@@ -72,6 +73,16 @@ export function AnalyzerApp() {
           </div>
 
           {status === 'error' && error && <ErrorMessage error={error} />}
+          {status === 'success' && storageFailed && (
+            <div
+              role="status"
+              className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-warn"
+            >
+              No se pudo guardar este análisis en el navegador (el almacenamiento
+              local está lleno o bloqueado). Expórtalo como JSON para no
+              perderlo, o elimina análisis antiguos del historial.
+            </div>
+          )}
           {status === 'loading' && <LoadingIndicator />}
 
           {result && status !== 'loading' && (
@@ -100,7 +111,23 @@ export function AnalyzerApp() {
       <footer className="mt-12 space-y-2 border-t border-line pt-6 text-xs text-muted">
         <p>
           Procesamiento 100% en el navegador. Los análisis se guardan localmente
-          para consulta.
+          para consulta.{' '}
+          <Link href="/privacidad" className="underline transition hover:text-ink">
+            Aviso de privacidad
+          </Link>
+          .
+        </p>
+        <p>
+          Usa YouTube API Services; al usar la aplicación aceptas los{' '}
+          <a
+            href="https://www.youtube.com/t/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition hover:text-ink"
+          >
+            Términos de servicio de YouTube
+          </a>
+          .
         </p>
         <p className="text-muted/70">
           Protegido por reCAPTCHA; aplican la{' '}

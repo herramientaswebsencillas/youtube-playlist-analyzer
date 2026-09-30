@@ -66,15 +66,21 @@ export function loadAnalysis(playlistId: string): AnalysisResult | null {
   return readJson<AnalysisResult>(analysisKey(playlistId));
 }
 
-/** Guarda un análisis y actualiza (upsert) su entrada de historial. */
-export function saveAnalysis(result: AnalysisResult): void {
-  writeJson(analysisKey(result.info.playlistId), result);
+/**
+ * Guarda un análisis y actualiza (upsert) su entrada de historial.
+ * Devuelve `false` si el navegador no pudo guardar el detalle (p. ej. cuota
+ * de LocalStorage llena), para que la UI pueda avisar al usuario.
+ */
+export function saveAnalysis(result: AnalysisResult): boolean {
+  const saved = writeJson(analysisKey(result.info.playlistId), result);
+  // Sin detalle guardado, una entrada de historial solo forzaría un re-análisis.
+  if (!saved) return false;
 
   const history = loadHistory().filter(
     (entry) => entry.playlistId !== result.info.playlistId,
   );
   history.unshift(toHistoryEntry(result));
-  writeJson(HISTORY_KEY, history);
+  return writeJson(HISTORY_KEY, history);
 }
 
 /** Elimina un análisis y su entrada de historial. */

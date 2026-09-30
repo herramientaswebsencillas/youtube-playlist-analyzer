@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
+import { MAX_IMPORT_BYTES } from '@/lib/export/import';
 
 /**
  * Botón para importar un análisis exportado (JSON). Restaura el resultado al
@@ -11,17 +12,24 @@ import { useAnalysisStore } from '@/store/useAnalysisStore';
 export function ImportButton() {
   const inputRef = useRef<HTMLInputElement>(null);
   const importAnalysis = useAnalysisStore((s) => s.importAnalysis);
+  const failImport = useAnalysisStore((s) => s.failImport);
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     // Permitir volver a seleccionar el mismo archivo más adelante.
     event.target.value = '';
     if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      failImport(
+        `El archivo es demasiado grande (máximo ${MAX_IMPORT_BYTES / 1024 / 1024} MB).`,
+      );
+      return;
+    }
     try {
       const text = await file.text();
       importAnalysis(text);
     } catch {
-      importAnalysis('');
+      failImport('No se pudo leer el archivo seleccionado.');
     }
   }
 

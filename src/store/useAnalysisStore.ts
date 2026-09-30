@@ -35,11 +35,14 @@ interface AnalysisState {
   fromCache: boolean;
   error: AppError | null;
   history: HistoryEntry[];
+  /** `true` si el último resultado no se pudo guardar en el navegador. */
+  storageFailed: boolean;
 
   setInput: (value: string) => void;
   hydrateHistory: () => void;
   analyze: (rawInput?: string, options?: { force?: boolean }) => Promise<void>;
   importAnalysis: (text: string) => void;
+  failImport: (message: string) => void;
   openFromHistory: (playlistId: string) => void;
   refresh: (playlistId: string) => Promise<void>;
   removeHistory: (playlistId: string) => void;
@@ -47,18 +50,40 @@ interface AnalysisState {
   reset: () => void;
 }
 
+/**
+ * Identificador de la acción más reciente que controla el resultado mostrado.
+ * Un análisis que termina después de que el usuario inició otra acción
+ * (otro análisis, abrir del historial, importar...) no debe sobrescribir la
+ * pantalla, aunque su resultado sí se guarde en la caché.
+ */
+let latestRequest = 0;
+
+function nextRequest(): number {
+  latestRequest += 1;
+  return latestRequest;
+}
+
 function runAnalysis(
   set: (partial: Partial<AnalysisState>) => void,
   playlistId: string,
   force: boolean,
 ): Promise<void> {
+  const requestId = nextRequest();
+  const isCurrent = () => requestId === latestRequest;
+
   // El análisis anterior sirve tanto de caché como de fuente para recuperar
   // los títulos de videos que ahora estén eliminados/privados.
   const previous = loadAnalysis(playlistId);
 
   // 1) Usar caché salvo que se fuerce la actualización.
   if (!force && previous) {
-    set({ status: 'success', result: previous, fromCache: true, error: null });
+    set({
+      status: 'success',
+      result: previous,
+      fromCache: true,
+      error: null,
+      storageFailed: false,
+    });
     return Promise.resolve();
   }
 
@@ -70,16 +95,22 @@ function runAnalysis(
   return executeCaptcha()
     .then(() => analyzePlaylist(playlistId, previous))
     .then((result) => {
-      saveAnalysis(result);
+      const saved = saveAnalysis(result);
+      if (!isCurrent()) {
+        set({ history: loadHistory() });
+        return;
+      }
       set({
         status: 'success',
         result,
         fromCache: false,
         error: null,
         history: loadHistory(),
+        storageFailed: !saved,
       });
     })
     .catch((err: unknown) => {
+      if (!isCurrent()) return;
       let error: AppError;
       if (err instanceof YouTubeApiError) {
         error = { code: err.code, message: err.message };
@@ -99,6 +130,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   fromCache: false,
   error: null,
   history: [],
+  storageFailed: false,
 
   setInput: (value) => set({ input: value }),
 
@@ -108,6 +140,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     const value = rawInput ?? get().input;
     const parsed = parsePlaylistInput(value);
     if (!parsed.ok) {
+      nextRequest();
       set({
         status: 'error',
         error: { code: 'invalid-input', message: parsed.message },
@@ -119,10 +152,11 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   },
 
   importAnalysis: (text) => {
+    nextRequest();
     try {
       const result = parseImportedAnalysis(text);
       // Guardar en caché e historial para futuras recuperaciones de títulos.
-      saveAnalysis(result);
+      const saved = saveAnalysis(result);
       set({
         status: 'success',
         result,
@@ -130,30 +164,33 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         error: null,
         history: loadHistory(),
         input: result.info.playlistId,
+        storageFailed: !saved,
       });
     } catch (err) {
-      set({
-        status: 'error',
-        error: {
-          code: 'invalid-input',
-          message:
-            err instanceof Error
-              ? err.message
-              : 'No se pudo importar el archivo de análisis.',
-        },
-      });
+      get().failImport(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo importar el archivo de análisis.',
+      );
     }
+  },
+
+  failImport: (message) => {
+    nextRequest();
+    set({ status: 'error', error: { code: 'invalid-input', message } });
   },
 
   openFromHistory: (playlistId) => {
     const cached = loadAnalysis(playlistId);
     if (cached) {
+      nextRequest();
       set({
         status: 'success',
         result: cached,
         fromCache: true,
         error: null,
         input: cached.info.playlistId,
+        storageFailed: false,
       });
     } else {
       // El resumen existe pero el detalle se perdió: forzar re-análisis.
@@ -172,19 +209,28 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     const history = loadHistory();
     const current = get().result;
     const clearCurrent = current?.info.playlistId === playlistId;
+    // Si hay un análisis en curso se deja terminar: solo se oculta el resultado.
+    const loading = get().status === 'loading';
     set({
       history,
       ...(clearCurrent
-        ? { result: null, status: 'idle', fromCache: false }
+        ? {
+            result: null,
+            fromCache: false,
+            ...(loading ? {} : { status: 'idle' as const }),
+          }
         : {}),
     });
   },
 
   clearAllHistory: () => {
+    nextRequest();
     clearHistory();
     set({ history: [], result: null, status: 'idle', fromCache: false });
   },
 
-  reset: () =>
-    set({ status: 'idle', result: null, error: null, fromCache: false }),
+  reset: () => {
+    nextRequest();
+    set({ status: 'idle', result: null, error: null, fromCache: false });
+  },
 }));
