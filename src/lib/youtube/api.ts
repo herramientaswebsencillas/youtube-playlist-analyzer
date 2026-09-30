@@ -68,7 +68,9 @@ function mapApiError(status: number, body: YtErrorBody): YouTubeApiError {
     reason === 'keyInvalid' ||
     reason === 'forbidden' ||
     reason === 'ipRefererBlocked' ||
-    status === 403
+    status === 403 ||
+    // Una clave inexistente llega como 400 "badRequest" con este mensaje.
+    (status === 400 && /api key not valid/i.test(message))
   ) {
     return new YouTubeApiError(
       'forbidden',

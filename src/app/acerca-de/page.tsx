@@ -91,8 +91,9 @@ export default function AboutPage() {
             títulos de videos que desaparezcan más adelante.
           </Feature>
           <Feature title="100% en tu navegador">
-            Se conecta únicamente en modo lectura a YouTube. Tus datos no se
-            envían a ningún backend propio porque, sencillamente, no existe.
+            Solo se conecta, en modo lectura, a servicios de Google (YouTube
+            Data API y reCAPTCHA). Tus datos no se envían a ningún backend
+            propio porque, sencillamente, no existe.
           </Feature>
         </div>
       </section>
@@ -161,6 +162,10 @@ export default function AboutPage() {
       <footer className="mt-12 border-t border-line pt-6 text-xs text-muted">
         <Link href="/" className="font-medium text-brand-ink hover:text-brand">
           Analizar una playlist
+        </Link>
+        <span className="mx-2">·</span>
+        <Link href="/privacidad" className="hover:text-ink">
+          Privacidad
         </Link>
         <span className="mx-2">·</span>
         Procesamiento 100% en el navegador.
