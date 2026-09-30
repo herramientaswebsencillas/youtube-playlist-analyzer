@@ -31,7 +31,7 @@ export function PlaylistInput() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Pega la URL de la playlist o su ID…"
-          className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink shadow-sm transition placeholder:text-muted/70 focus:border-brand"
+          className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink shadow-xs transition placeholder:text-muted/70 focus:border-brand"
         />
       </div>
       <button

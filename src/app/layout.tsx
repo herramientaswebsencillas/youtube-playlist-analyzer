@@ -4,19 +4,19 @@ import './globals.css';
 
 const sans = Inter({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-inter',
   display: 'swap',
 });
 
 const display = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-display',
+  variable: '--font-space-grotesk',
   display: 'swap',
 });
 
 const mono = JetBrains_Mono({
   subsets: ['latin'],
-  variable: '--font-mono',
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 });
 
