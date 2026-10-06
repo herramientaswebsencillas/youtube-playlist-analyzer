@@ -24,6 +24,10 @@ const API_BASE = 'https://www.googleapis.com/youtube/v3';
 const MAX_PAGE_SIZE = 50;
 /** Tope defensivo: evita bucles infinitos de paginación. */
 const MAX_PAGES = 200;
+/** Sin timeout, `fetch` puede esperar indefinidamente y dejar la UI cargando. */
+const REQUEST_TIMEOUT_MS = 20_000;
+/** Espera base antes del único reintento ante `rate-limit` (se le suma jitter). */
+const RATE_LIMIT_RETRY_DELAY_MS = 2_000;
 
 /** Error tipado que la UI puede mapear a un mensaje claro. */
 export class YouTubeApiError extends Error {
@@ -86,18 +90,32 @@ function mapApiError(status: number, body: YtErrorBody): YouTubeApiError {
   return new YouTubeApiError('unknown', message);
 }
 
-/** Ejecuta una petición GET a la API y devuelve el JSON tipado. */
-async function apiGet<T extends YtErrorBody>(
+function isTimeout(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'TimeoutError';
+}
+
+function timeoutError(): YouTubeApiError {
+  return new YouTubeApiError(
+    'network',
+    'La API tardó demasiado en responder. Intenta de nuevo.',
+  );
+}
+
+/** Ejecuta una única petición GET a la API y devuelve el JSON tipado. */
+async function apiGetOnce<T extends YtErrorBody>(
   path: string,
   params: Record<string, string>,
 ): Promise<T> {
   const search = new URLSearchParams({ ...params, key: getApiKey() });
   const requestUrl = `${API_BASE}/${path}?${search.toString()}`;
+  // El timeout cubre también la lectura del cuerpo.
+  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
 
   let response: Response;
   try {
-    response = await fetch(requestUrl, { method: 'GET' });
-  } catch {
+    response = await fetch(requestUrl, { method: 'GET', signal });
+  } catch (err) {
+    if (isTimeout(err)) throw timeoutError();
     throw new YouTubeApiError(
       'network',
       'No se pudo conectar con la API. Revisa tu conexión a internet.',
@@ -107,7 +125,8 @@ async function apiGet<T extends YtErrorBody>(
   let body: T;
   try {
     body = (await response.json()) as T;
-  } catch {
+  } catch (err) {
+    if (isTimeout(err)) throw timeoutError();
     throw new YouTubeApiError('unknown', 'Respuesta inesperada de la API.');
   }
 
@@ -115,6 +134,27 @@ async function apiGet<T extends YtErrorBody>(
     throw mapApiError(response.status, body);
   }
   return body;
+}
+
+/**
+ * Ejecuta una petición GET con un único reintento ante `rate-limit`: es un
+ * límite por segundo, así que suele bastar con esperar un poco. Las lecturas
+ * son idempotentes; la cuota diaria agotada no se reintenta.
+ */
+async function apiGet<T extends YtErrorBody>(
+  path: string,
+  params: Record<string, string>,
+): Promise<T> {
+  try {
+    return await apiGetOnce<T>(path, params);
+  } catch (err) {
+    if (!(err instanceof YouTubeApiError) || err.code !== 'rate-limit') {
+      throw err;
+    }
+    const delay = RATE_LIMIT_RETRY_DELAY_MS * (1 + Math.random());
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    return apiGetOnce<T>(path, params);
+  }
 }
 
 /** Obtiene los metadatos de la playlist. Lanza `not-found` si no existe. */
