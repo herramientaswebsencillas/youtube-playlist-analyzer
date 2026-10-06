@@ -9,9 +9,9 @@ name: CI / Deploy to Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
   pull_request:
-    branches: ["main"]
+    branches: ['main']
   # Permite ejecutar el workflow manualmente desde la pestaña Actions.
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: '.nvmrc'
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -63,7 +63,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: '.nvmrc'
           cache: npm
       - name: Setup Pages
         # Sin `static_site_generator`: basePath e images.unoptimized ya se
@@ -98,7 +98,7 @@ jobs:
       id-token: write
     # Un solo despliegue a la vez; no cancela el que está en curso.
     concurrency:
-      group: "pages"
+      group: 'pages'
       cancel-in-progress: false
     environment:
       name: github-pages

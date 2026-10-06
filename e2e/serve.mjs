@@ -29,7 +29,9 @@ const TYPES = {
 };
 
 async function resolveFile(urlPath) {
-  const relative = normalize(decodeURIComponent(urlPath.slice(BASE_PATH.length)));
+  const relative = normalize(
+    decodeURIComponent(urlPath.slice(BASE_PATH.length)),
+  );
   const candidate = join(ROOT, relative);
   if (candidate !== ROOT && !candidate.startsWith(ROOT + sep)) return null;
   for (const path of [candidate, join(candidate, 'index.html')]) {

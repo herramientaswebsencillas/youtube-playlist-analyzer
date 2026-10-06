@@ -20,7 +20,9 @@ export function StatCard({
 
   return (
     <div className="rounded-xl border border-line bg-surface px-4 py-3">
-      <div className={`font-display text-2xl font-semibold tabular ${toneClass}`}>
+      <div
+        className={`font-display text-2xl font-semibold tabular ${toneClass}`}
+      >
         {value}
       </div>
       <div className="mt-0.5 text-xs text-muted">{label}</div>

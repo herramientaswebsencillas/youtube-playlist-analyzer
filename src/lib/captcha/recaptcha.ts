@@ -124,7 +124,10 @@ function ensureWidget(): Promise<number> {
               badge: 'bottomright',
               callback: () => settle('resolve'),
               'error-callback': () =>
-                settle('reject', new CaptchaError('reCAPTCHA falló. Intenta de nuevo.')),
+                settle(
+                  'reject',
+                  new CaptchaError('reCAPTCHA falló. Intenta de nuevo.'),
+                ),
               'expired-callback': () =>
                 settle(
                   'reject',

@@ -7,7 +7,12 @@ describe('parseImportedAnalysis', () => {
   it('reimporta sin pérdida lo que exporta toJson', () => {
     const original = makeResult([
       makeVideo({ videoId: 'a', title: 'Song', artist: 'Queen', position: 0 }),
-      makeVideo({ videoId: 'b', title: 'Song (HD)', artist: 'Queen', position: 1 }),
+      makeVideo({
+        videoId: 'b',
+        title: 'Song (HD)',
+        artist: 'Queen',
+        position: 1,
+      }),
       makeVideo({
         videoId: 'c',
         title: 'Deleted video',

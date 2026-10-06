@@ -74,7 +74,9 @@ describe('historial en LocalStorage', () => {
   it('limpia solo las claves propias de la aplicación', () => {
     storage.setItem('otra-app', 'x');
     saveAnalysis(makeResult([makeVideo({ videoId: 'a', title: 'A' })]));
-    saveAnalysis(makeResult([makeVideo({ videoId: 'b', title: 'B' })], OTHER_ID));
+    saveAnalysis(
+      makeResult([makeVideo({ videoId: 'b', title: 'B' })], OTHER_ID),
+    );
     clearHistory();
     expect(storage.length).toBe(1);
     expect(storage.getItem('otra-app')).toBe('x');
@@ -116,7 +118,10 @@ describe('historial en LocalStorage', () => {
   });
 
   it('descarta un análisis guardado bajo otro ID', () => {
-    const other = makeResult([makeVideo({ videoId: 'a', title: 'A' })], OTHER_ID);
+    const other = makeResult(
+      [makeVideo({ videoId: 'a', title: 'A' })],
+      OTHER_ID,
+    );
     storage.setItem(`ytpa:analysis:v1:${PLAYLIST_ID}`, JSON.stringify(other));
     expect(loadAnalysis(PLAYLIST_ID)).toBeNull();
   });
@@ -125,7 +130,11 @@ describe('historial en LocalStorage', () => {
     const result = makeResult([makeVideo({ videoId: 'a', title: 'Song' })]);
     storage.setItem(
       `ytpa:analysis:v1:${PLAYLIST_ID}`,
-      JSON.stringify({ info: result.info, videos: result.videos, analyzedAt: result.analyzedAt }),
+      JSON.stringify({
+        info: result.info,
+        videos: result.videos,
+        analyzedAt: result.analyzedAt,
+      }),
     );
     expect(loadAnalysis(PLAYLIST_ID)).toEqual(result);
   });

@@ -120,40 +120,44 @@ function runAnalysis(
   set({ status: 'loading', error: null, fromCache: false });
   const run: Run = { requestId, playlistId, discarded: false };
   runs.add(run);
-  return executeCaptcha()
-    // Si se descartó mientras se resolvía el reto, no se gasta cuota.
-    .then(() => (run.discarded ? null : analyzePlaylist(playlistId, previous)))
-    .then((result) => {
-      if (run.discarded || !result) return;
-      const saved = saveAnalysis(result);
-      if (!isCurrent()) {
-        set({ history: loadHistory() });
-        return;
-      }
-      set({
-        status: 'success',
-        result,
-        fromCache: false,
-        error: null,
-        history: loadHistory(),
-        storageFailed: !saved,
-      });
-    })
-    .catch((err: unknown) => {
-      if (run.discarded || !isCurrent()) return;
-      let error: AppError;
-      if (err instanceof YouTubeApiError) {
-        error = { code: err.code, message: err.message };
-      } else if (err instanceof CaptchaError) {
-        error = { code: 'captcha-failed', message: err.message };
-      } else {
-        error = { code: 'unknown', message: 'Ocurrió un error inesperado.' };
-      }
-      set({ status: 'error', error, fromCache: false });
-    })
-    .finally(() => {
-      runs.delete(run);
-    });
+  return (
+    executeCaptcha()
+      // Si se descartó mientras se resolvía el reto, no se gasta cuota.
+      .then(() =>
+        run.discarded ? null : analyzePlaylist(playlistId, previous),
+      )
+      .then((result) => {
+        if (run.discarded || !result) return;
+        const saved = saveAnalysis(result);
+        if (!isCurrent()) {
+          set({ history: loadHistory() });
+          return;
+        }
+        set({
+          status: 'success',
+          result,
+          fromCache: false,
+          error: null,
+          history: loadHistory(),
+          storageFailed: !saved,
+        });
+      })
+      .catch((err: unknown) => {
+        if (run.discarded || !isCurrent()) return;
+        let error: AppError;
+        if (err instanceof YouTubeApiError) {
+          error = { code: err.code, message: err.message };
+        } else if (err instanceof CaptchaError) {
+          error = { code: 'captcha-failed', message: err.message };
+        } else {
+          error = { code: 'unknown', message: 'Ocurrió un error inesperado.' };
+        }
+        set({ status: 'error', error, fromCache: false });
+      })
+      .finally(() => {
+        runs.delete(run);
+      })
+  );
 }
 
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
@@ -240,7 +244,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   removeHistory: (playlistId) => {
     // Borrar gana: un análisis en curso de esta playlist se descarta, para
     // que al terminar no vuelva a aparecer en el historial ni en pantalla.
-    const cancelledCurrent = discardRuns((run) => run.playlistId === playlistId);
+    const cancelledCurrent = discardRuns(
+      (run) => run.playlistId === playlistId,
+    );
     deleteAnalysis(playlistId);
     const { result, status } = get();
     const clearResult = result?.info.playlistId === playlistId;

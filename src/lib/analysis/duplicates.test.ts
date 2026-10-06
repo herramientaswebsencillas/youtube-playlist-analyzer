@@ -30,8 +30,16 @@ describe('findDuplicates', () => {
 
   it('ignora videos no disponibles y títulos vacíos', () => {
     const videos = [
-      makeVideo({ videoId: 'a', title: 'Deleted video', availability: 'deleted' }),
-      makeVideo({ videoId: 'b', title: 'Deleted video', availability: 'deleted' }),
+      makeVideo({
+        videoId: 'a',
+        title: 'Deleted video',
+        availability: 'deleted',
+      }),
+      makeVideo({
+        videoId: 'b',
+        title: 'Deleted video',
+        availability: 'deleted',
+      }),
       makeVideo({ videoId: 'c', title: '!!!' }),
       makeVideo({ videoId: 'd', title: '???' }),
     ];

@@ -132,7 +132,10 @@ export function normalizeArtist(
   value = value.replace(/vevo\s*$/i, '');
   if (config.stripDiacritics) value = removeDiacritics(value);
   if (config.caseInsensitive) value = value.toLowerCase();
-  value = value.replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  value = value
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return value;
 }
 

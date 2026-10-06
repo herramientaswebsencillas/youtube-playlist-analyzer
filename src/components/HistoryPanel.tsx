@@ -47,7 +47,10 @@ export function HistoryPanel() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium" title={entry.title}>
+                  <p
+                    className="truncate text-sm font-medium"
+                    title={entry.title}
+                  >
                     {entry.title}
                   </p>
                   <p className="mt-0.5 truncate font-mono text-xs text-muted">

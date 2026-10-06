@@ -83,7 +83,8 @@ export function parsePlaylistInput(raw: string): ParseResult {
   if (listParam) {
     return {
       ok: false,
-      message: 'El parámetro "list" de la URL no contiene un ID de playlist válido.',
+      message:
+        'El parámetro "list" de la URL no contiene un ID de playlist válido.',
     };
   }
 

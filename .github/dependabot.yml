@@ -3,24 +3,24 @@
 # mayores llegan por separado para revisarlas con calma.
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     open-pull-requests-limit: 5
     groups:
       npm-minor-patch:
-        update-types: ["minor", "patch"]
+        update-types: ['minor', 'patch']
     ignore:
       # Los tipos de Node deben corresponder al runtime (.nvmrc / engines),
       # no a la última versión de Node: la versión mayor se sube a mano.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']

@@ -121,9 +121,11 @@ describe('useAnalysisStore', () => {
 
     expect(store().result?.info.playlistId).toBe(OTHER_ID);
     // El resultado obsoleto sí se guarda en la caché.
-    expect(store().history.map((e) => e.playlistId).sort()).toEqual(
-      [OTHER_ID, PLAYLIST_ID].sort(),
-    );
+    expect(
+      store()
+        .history.map((e) => e.playlistId)
+        .sort(),
+    ).toEqual([OTHER_ID, PLAYLIST_ID].sort());
   });
 
   describe('borrar durante un análisis (gana el borrado)', () => {
@@ -244,7 +246,10 @@ describe('useAnalysisStore', () => {
 
     expect(store()).toMatchObject({
       status: 'error',
-      error: { code: 'invalid-input', message: 'El archivo no es un JSON válido.' },
+      error: {
+        code: 'invalid-input',
+        message: 'El archivo no es un JSON válido.',
+      },
     });
   });
 });

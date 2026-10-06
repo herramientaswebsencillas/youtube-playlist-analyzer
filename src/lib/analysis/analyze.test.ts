@@ -87,9 +87,7 @@ describe('analyzePlaylist', () => {
       'v1',
       'v2',
     ]);
-    expect(
-      result.unavailable.map((v) => [v.videoId, v.availability]),
-    ).toEqual([
+    expect(result.unavailable.map((v) => [v.videoId, v.availability])).toEqual([
       ['v3', 'deleted'],
       ['v4', 'private'],
     ]);

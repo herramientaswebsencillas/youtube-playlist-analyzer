@@ -65,7 +65,11 @@ export function AnalysisSummary() {
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Elementos" value={result.videos.length} />
-        <StatCard label="Canciones repetidas" value={duplicateItems} tone="warn" />
+        <StatCard
+          label="Canciones repetidas"
+          value={duplicateItems}
+          tone="warn"
+        />
         <StatCard
           label="Grupos de duplicados"
           value={result.duplicates.length}

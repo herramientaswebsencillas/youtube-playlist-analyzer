@@ -9,17 +9,17 @@
  * título de videos que ahora aparecen como eliminados/privados.
  */
 
-import type {
-  AnalysisResult,
-  Availability,
-  PlaylistVideo,
-} from '@/types';
+import type { AnalysisResult, Availability, PlaylistVideo } from '@/types';
 import {
   fetchAllPlaylistItems,
   fetchPlaylistInfo,
   fetchVideoStatuses,
 } from '@/lib/youtube/api';
-import type { YtPlaylistItem, YtThumbnails, YtVideo } from '@/lib/youtube/types';
+import type {
+  YtPlaylistItem,
+  YtThumbnails,
+  YtVideo,
+} from '@/lib/youtube/types';
 import { videoUrl } from '@/lib/utils/sanitize';
 import {
   buildDedupKey,
@@ -35,7 +35,9 @@ const HEALTHY_UPLOAD_STATUSES = new Set(['processed', 'uploaded']);
 
 /** ID del video de un elemento de la playlist, o '' si no lo trae. */
 function videoIdOf(item: YtPlaylistItem): string {
-  return item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId ?? '';
+  return (
+    item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId ?? ''
+  );
 }
 
 /** Elige la mejor miniatura disponible. */
@@ -107,7 +109,10 @@ function toPlaylistVideo(
 
   const { availability, reason } = videoId
     ? classify(item, video)
-    : { availability: 'unavailable' as Availability, reason: 'Sin ID de video' };
+    : {
+        availability: 'unavailable' as Availability,
+        reason: 'Sin ID de video',
+      };
 
   // Fuentes para artista/canción: preferimos el snippet de videos.list.
   const channelTitle =

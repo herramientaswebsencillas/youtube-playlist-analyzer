@@ -27,7 +27,10 @@ function Group({
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
       >
         <span className="min-w-0">
-          <span className="block truncate font-medium text-ink" title={group.label}>
+          <span
+            className="block truncate font-medium text-ink"
+            title={group.label}
+          >
             {group.label}
           </span>
           <span className="flex flex-wrap items-center gap-x-2 text-xs">
@@ -51,7 +54,10 @@ function Group({
         </svg>
       </button>
       {open && (
-        <ul id={panelId} className="divide-y divide-line border-t border-line px-4">
+        <ul
+          id={panelId}
+          className="divide-y divide-line border-t border-line px-4"
+        >
           {group.videos.map((video, i) => (
             <VideoItem key={`${video.videoId}-${i}`} video={video} />
           ))}
@@ -67,9 +73,13 @@ export function DuplicatesSection() {
 
   return (
     <section className="space-y-3">
-      <h2 className="font-display text-lg font-semibold">Canciones repetidas</h2>
+      <h2 className="font-display text-lg font-semibold">
+        Canciones repetidas
+      </h2>
       {duplicates.length === 0 ? (
-        <EmptyState>No se detectaron canciones repetidas en esta playlist.</EmptyState>
+        <EmptyState>
+          No se detectaron canciones repetidas en esta playlist.
+        </EmptyState>
       ) : (
         <div className="space-y-3">
           {duplicates.map((group, index) => (

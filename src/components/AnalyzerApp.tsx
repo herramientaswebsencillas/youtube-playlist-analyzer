@@ -55,8 +55,8 @@ export function AnalyzerApp() {
       {!API_KEY_CONFIGURED && (
         <div className="mb-6 rounded-xl border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-warn">
           No se detectó una clave de API. Define{' '}
-          <code className="font-mono">NEXT_PUBLIC_YOUTUBE_API_KEY</code> antes de
-          compilar para poder analizar playlists.
+          <code className="font-mono">NEXT_PUBLIC_YOUTUBE_API_KEY</code> antes
+          de compilar para poder analizar playlists.
         </div>
       )}
 
@@ -78,9 +78,9 @@ export function AnalyzerApp() {
               role="status"
               className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-warn"
             >
-              No se pudo guardar este análisis en el navegador (el almacenamiento
-              local está lleno o bloqueado). Expórtalo como JSON para no
-              perderlo, o elimina análisis antiguos del historial.
+              No se pudo guardar este análisis en el navegador (el
+              almacenamiento local está lleno o bloqueado). Expórtalo como JSON
+              para no perderlo, o elimina análisis antiguos del historial.
             </div>
           )}
           {status === 'loading' && <LoadingIndicator />}
@@ -112,7 +112,10 @@ export function AnalyzerApp() {
         <p>
           Procesamiento 100% en el navegador. Los análisis se guardan localmente
           para consulta.{' '}
-          <Link href="/privacidad" className="underline transition hover:text-ink">
+          <Link
+            href="/privacidad"
+            className="underline transition hover:text-ink"
+          >
             Aviso de privacidad
           </Link>
           .

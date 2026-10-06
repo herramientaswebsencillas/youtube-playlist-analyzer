@@ -7,13 +7,14 @@ export function buildFileName(
   playlistTitle: string,
   extension: string,
 ): string {
-  const slug = playlistTitle
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase()
-    .slice(0, 60) || 'playlist';
+  const slug =
+    playlistTitle
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase()
+      .slice(0, 60) || 'playlist';
   const date = new Date().toISOString().slice(0, 10);
   return `analisis-${slug}-${date}.${extension}`;
 }
