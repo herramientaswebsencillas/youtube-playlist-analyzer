@@ -1,7 +1,8 @@
 # Verifica, compila y publica el sitio estático en GitHub Pages.
 #
-# - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas,
-#   vulnerabilidades de dependencias con `npm audit` y build).
+# - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas
+#   unitarias, vulnerabilidades de dependencias con `npm audit`, build y
+#   pruebas E2E sobre ese build).
 # - En pushes a main, el despliegue solo ocurre si la verificación pasa.
 #
 name: CI / Deploy to Pages
@@ -43,6 +44,12 @@ jobs:
         # Detecta cambios que compilan en tipos pero rompen el build (p. ej. una
         # actualización mayor de Tailwind). Sin secrets: no hacen falta aquí.
         run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E tests
+        # Prueban el build anterior (con su CSP) sin gastar cuota de la API:
+        # los flujos parten de un JSON importado.
+        run: npm run test:e2e
 
   build:
     needs: verify
