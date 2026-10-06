@@ -149,6 +149,7 @@ npm run dev        # entorno de desarrollo
 npm run build      # exportación estática a ./out
 npm run typecheck  # verificación de tipos
 npm run lint       # ESLint
+npm run format     # Prettier (format:check lo verifica sin escribir)
 npm test           # pruebas unitarias (Vitest)
 npm run test:e2e   # pruebas E2E (Playwright) sobre ./out; requiere build
 ```

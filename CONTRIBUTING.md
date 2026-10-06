@@ -25,6 +25,7 @@
 ```bash
 npm run typecheck
 npm run lint
+npm run format:check   # o `npm run format` para corregir
 npm test
 npm run build
 npm run test:e2e   # la primera vez: npx playwright install chromium

@@ -36,6 +36,8 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Format
+        run: npm run format:check
       - name: Unit tests
         run: npm test
       - name: Audit production dependencies
