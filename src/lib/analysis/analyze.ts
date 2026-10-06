@@ -24,6 +24,7 @@ import { videoUrl } from '@/lib/utils/sanitize';
 import {
   buildDedupKey,
   deriveTrackMeta,
+  isPlaceholderTitle,
   normalizeArtist,
   normalizeTitle,
 } from './normalize';
@@ -32,8 +33,10 @@ import { findDuplicates } from './duplicates';
 /** Estados de subida que indican un video accesible. */
 const HEALTHY_UPLOAD_STATUSES = new Set(['processed', 'uploaded']);
 
-/** Títulos placeholder que no aportan información real. */
-const PLACEHOLDER_TITLES = new Set(['deleted video', 'private video']);
+/** ID del video de un elemento de la playlist, o '' si no lo trae. */
+function videoIdOf(item: YtPlaylistItem): string {
+  return item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId ?? '';
+}
 
 /** Elige la mejor miniatura disponible. */
 function pickThumbnail(thumbnails: YtThumbnails | undefined): string | null {
@@ -98,8 +101,7 @@ function toPlaylistVideo(
   statuses: Map<string, YtVideo>,
   previousById: Map<string, PlaylistVideo>,
 ): PlaylistVideo {
-  const videoId =
-    item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId ?? '';
+  const videoId = videoIdOf(item);
   const video = videoId ? statuses.get(videoId) : undefined;
   const rawTitle = item.snippet?.title ?? 'Sin título';
 
@@ -123,12 +125,11 @@ function toPlaylistVideo(
   if (availability !== 'available') {
     const prev = previousById.get(videoId);
     if (prev) {
-      const prevLower = prev.title.trim().toLowerCase();
-      if (!PLACEHOLDER_TITLES.has(prevLower)) {
+      if (!isPlaceholderTitle(prev.title)) {
         previousTitle = prev.title;
       }
       if (!artist && prev.artist) artist = prev.artist;
-      if (PLACEHOLDER_TITLES.has(rawTitle.trim().toLowerCase()) && previousTitle) {
+      if (isPlaceholderTitle(rawTitle) && previousTitle) {
         songTitle = previousTitle;
       }
     }
@@ -169,12 +170,7 @@ export async function analyzePlaylist(
     fetchAllPlaylistItems(playlistId),
   ]);
 
-  const videoIds = rawItems
-    .map(
-      (item) =>
-        item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId ?? '',
-    )
-    .filter(Boolean);
+  const videoIds = rawItems.map(videoIdOf).filter(Boolean);
 
   const statuses = await fetchVideoStatuses(videoIds);
 

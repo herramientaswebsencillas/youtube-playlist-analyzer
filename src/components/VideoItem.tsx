@@ -1,8 +1,7 @@
 import type { PlaylistVideo } from '@/types';
 import { safeYouTubeUrl } from '@/lib/utils/sanitize';
+import { isPlaceholderTitle } from '@/lib/analysis/normalize';
 import { AvailabilityBadge } from './primitives';
-
-const PLACEHOLDER_TITLES = new Set(['deleted video', 'private video']);
 
 /** Muestra un video: miniatura, título, artista, posición e ID. */
 export function VideoItem({
@@ -15,7 +14,7 @@ export function VideoItem({
   const url = safeYouTubeUrl(video.url);
   const thumb = safeYouTubeUrl(video.thumbnail);
 
-  const isPlaceholder = PLACEHOLDER_TITLES.has(video.title.trim().toLowerCase());
+  const isPlaceholder = isPlaceholderTitle(video.title);
   const recovered = isPlaceholder && video.previousTitle;
   const displayTitle = recovered ? video.previousTitle! : video.title;
 
