@@ -30,6 +30,8 @@ describe('safeYouTubeUrl', () => {
 describe('videoUrl / playlistUrl', () => {
   it('codifica el ID', () => {
     expect(videoUrl('a b&c')).toBe('https://www.youtube.com/watch?v=a%20b%26c');
-    expect(playlistUrl('PL1')).toBe('https://www.youtube.com/playlist?list=PL1');
+    expect(playlistUrl('PL1')).toBe(
+      'https://www.youtube.com/playlist?list=PL1',
+    );
   });
 });

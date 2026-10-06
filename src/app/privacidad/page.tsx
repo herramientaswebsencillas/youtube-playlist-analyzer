@@ -79,8 +79,8 @@ export default function PrivacyPage() {
 
       <Section title="Uso de YouTube API Services">
         <p>
-          Esta aplicación usa YouTube API Services para leer información
-          pública de playlists y videos. Al usarla aceptas los{' '}
+          Esta aplicación usa YouTube API Services para leer información pública
+          de playlists y videos. Al usarla aceptas los{' '}
           <ExternalLink href={YOUTUBE_TERMS_URL}>
             Términos de servicio de YouTube
           </ExternalLink>
@@ -130,27 +130,25 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="Servicios de terceros">
-        <p>
-          El navegador se conecta directamente a estos servicios de Google:
-        </p>
+        <p>El navegador se conecta directamente a estos servicios de Google:</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong className="text-ink">YouTube Data API</strong>
-            {' '}(googleapis.com), para obtener la información de las playlists.
+            <strong className="text-ink">YouTube Data API</strong>{' '}
+            (googleapis.com), para obtener la información de las playlists.
           </li>
           <li>
-            <strong className="text-ink">Google reCAPTCHA</strong>
-            {' '}(google.com y gstatic.com), que verifica que quien hace la consulta
-            es una persona. reCAPTCHA recoge información del dispositivo y del
-            uso, sujeta a la{' '}
+            <strong className="text-ink">Google reCAPTCHA</strong> (google.com y
+            gstatic.com), que verifica que quien hace la consulta es una
+            persona. reCAPTCHA recoge información del dispositivo y del uso,
+            sujeta a la{' '}
             <ExternalLink href={GOOGLE_PRIVACY_URL}>
               Política de privacidad de Google
             </ExternalLink>
             .
           </li>
           <li>
-            <strong className="text-ink">Miniaturas de YouTube</strong>
-            {' '}(ytimg.com), que se cargan al mostrar los resultados.
+            <strong className="text-ink">Miniaturas de YouTube</strong>{' '}
+            (ytimg.com), que se cargan al mostrar los resultados.
           </li>
         </ul>
         <p>

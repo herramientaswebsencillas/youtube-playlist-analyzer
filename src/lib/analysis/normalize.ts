@@ -132,7 +132,10 @@ export function normalizeArtist(
   value = value.replace(/vevo\s*$/i, '');
   if (config.stripDiacritics) value = removeDiacritics(value);
   if (config.caseInsensitive) value = value.toLowerCase();
-  value = value.replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  value = value
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return value;
 }
 
@@ -236,6 +239,14 @@ export function deriveTrackMeta(
       artist: input.channelTitle ?? null,
     }
   );
+}
+
+/** Títulos con los que YouTube sustituye a los videos eliminados o privados. */
+const PLACEHOLDER_TITLES = new Set(['deleted video', 'private video']);
+
+/** Indica si un título es un placeholder sin información real del video. */
+export function isPlaceholderTitle(title: string): boolean {
+  return PLACEHOLDER_TITLES.has(title.trim().toLowerCase());
 }
 
 /** Construye la clave de duplicados a partir de título y artista normalizados. */

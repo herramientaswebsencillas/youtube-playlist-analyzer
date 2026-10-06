@@ -69,7 +69,8 @@ a cada consulta a la API para evitar el consumo automatizado de la cuota:
 ## Despliegue
 
 El workflow `.github/workflows/nextjs.yml` verifica el proyecto (tipos, lint,
-pruebas y `npm audit`) en cada pull request y en cada push a `main`. Solo si la
+pruebas unitarias, `npm audit`, build y pruebas E2E) en cada pull request y en
+cada push a `main`. Solo si la
 verificación pasa, compila y publica el sitio en GitHub Pages. Define los
 valores en **Settings → Secrets and variables → Actions**:
 
@@ -148,12 +149,19 @@ npm run dev        # entorno de desarrollo
 npm run build      # exportación estática a ./out
 npm run typecheck  # verificación de tipos
 npm run lint       # ESLint
+npm run format     # Prettier (format:check lo verifica sin escribir)
 npm test           # pruebas unitarias (Vitest)
+npm run test:e2e   # pruebas E2E (Playwright) sobre ./out; requiere build
 ```
 
-Las pruebas viven junto al código (`src/**/*.test.ts`) y cubren la lógica de
-`src/lib`: parseo de URLs, normalización, duplicados, importación, historial y
-el cliente de la API con `fetch` simulado.
+Las pruebas unitarias viven junto al código (`src/**/*.test.ts`) y cubren la
+lógica de `src/lib` (parseo de URLs, normalización, duplicados, importación,
+historial y el cliente de la API con `fetch` simulado) y el store.
+
+Las pruebas E2E (`e2e/`) sirven la exportación estática con el mismo basePath
+que GitHub Pages (`e2e/serve.mjs`) y recorren importar → ver resultados →
+exportar → historial con la CSP de producción activa. No usan la API. La
+primera vez, instala el navegador con `npx playwright install chromium`.
 
 Para contribuir, consulta [CONTRIBUTING.md](CONTRIBUTING.md). Para reportar
 vulnerabilidades, [SECURITY.md](SECURITY.md).

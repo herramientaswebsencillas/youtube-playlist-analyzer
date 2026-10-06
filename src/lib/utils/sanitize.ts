@@ -21,7 +21,9 @@ const SAFE_URL_HOSTS = [
  * Devuelve la URL sólo si usa http(s) y apunta a un host de YouTube conocido.
  * En cualquier otro caso devuelve `null` para no renderizar contenido dudoso.
  */
-export function safeYouTubeUrl(value: string | null | undefined): string | null {
+export function safeYouTubeUrl(
+  value: string | null | undefined,
+): string | null {
   if (!value) return null;
   try {
     const url = new URL(value);

@@ -10,7 +10,9 @@ export function UnavailableSection() {
 
   return (
     <section className="space-y-3">
-      <h2 className="font-display text-lg font-semibold">Videos no disponibles</h2>
+      <h2 className="font-display text-lg font-semibold">
+        Videos no disponibles
+      </h2>
       {unavailable.length === 0 ? (
         <EmptyState>
           Todos los videos de la playlist están disponibles.

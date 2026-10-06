@@ -1,0 +1,5 @@
+# Commits de solo formato que `git blame` debe omitir.
+# GitHub lo aplica automáticamente; en local: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Aplica Prettier a todo el código
+8943229ab1d4b9877d02b6da50d1f055a6392824

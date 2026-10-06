@@ -16,8 +16,8 @@
 - `main` siempre está desplegada: cada merge publica el sitio.
 - Trabaja en una rama (`feat/...`, `fix/...`, `docs/...`) y abre un pull
   request hacia `main`.
-- El pipeline ejecuta tipos, lint, pruebas, revisión de vulnerabilidades de
-  dependencias (`npm audit`) y build. Un PR solo se integra con todos los
+- El pipeline ejecuta tipos, lint, pruebas unitarias, revisión de
+  vulnerabilidades de dependencias (`npm audit`), build y pruebas E2E. Un PR solo se integra con todos los
   checks en verde.
 
 ## Antes de abrir el PR
@@ -25,8 +25,10 @@
 ```bash
 npm run typecheck
 npm run lint
+npm run format:check   # o `npm run format` para corregir
 npm test
 npm run build
+npm run test:e2e   # la primera vez: npx playwright install chromium
 ```
 
 - Agrega o actualiza pruebas cuando cambies la lógica de `src/lib` (por

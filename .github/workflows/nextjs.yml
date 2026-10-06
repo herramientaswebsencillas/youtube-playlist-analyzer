@@ -1,16 +1,17 @@
 # Verifica, compila y publica el sitio estático en GitHub Pages.
 #
-# - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas,
-#   vulnerabilidades de dependencias con `npm audit` y build).
+# - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas
+#   unitarias, vulnerabilidades de dependencias con `npm audit`, build y
+#   pruebas E2E sobre ese build).
 # - En pushes a main, el despliegue solo ocurre si la verificación pasa.
 #
 name: CI / Deploy to Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
   pull_request:
-    branches: ["main"]
+    branches: ['main']
   # Permite ejecutar el workflow manualmente desde la pestaña Actions.
   workflow_dispatch:
 
@@ -27,7 +28,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: '.nvmrc'
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -35,6 +36,8 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Format
+        run: npm run format:check
       - name: Unit tests
         run: npm test
       - name: Audit production dependencies
@@ -43,6 +46,12 @@ jobs:
         # Detecta cambios que compilan en tipos pero rompen el build (p. ej. una
         # actualización mayor de Tailwind). Sin secrets: no hacen falta aquí.
         run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E tests
+        # Prueban el build anterior (con su CSP) sin gastar cuota de la API:
+        # los flujos parten de un JSON importado.
+        run: npm run test:e2e
 
   build:
     needs: verify
@@ -54,7 +63,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: '.nvmrc'
           cache: npm
       - name: Setup Pages
         # Sin `static_site_generator`: basePath e images.unoptimized ya se
@@ -89,7 +98,7 @@ jobs:
       id-token: write
     # Un solo despliegue a la vez; no cancela el que está en curso.
     concurrency:
-      group: "pages"
+      group: 'pages'
       cancel-in-progress: false
     environment:
       name: github-pages

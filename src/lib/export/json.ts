@@ -3,6 +3,7 @@
  */
 
 import type { AnalysisResult } from '@/types';
+import { countDuplicateItems } from '@/lib/analysis/duplicates';
 
 export function toJson(result: AnalysisResult): string {
   const payload = {
@@ -13,10 +14,7 @@ export function toJson(result: AnalysisResult): string {
     totals: {
       items: result.videos.length,
       duplicateGroups: result.duplicates.length,
-      duplicateItems: result.duplicates.reduce(
-        (sum, group) => sum + group.videos.length,
-        0,
-      ),
+      duplicateItems: countDuplicateItems(result.duplicates),
       unavailable: result.unavailable.length,
     },
     duplicates: result.duplicates,

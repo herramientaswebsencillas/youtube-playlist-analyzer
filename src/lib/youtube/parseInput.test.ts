@@ -28,7 +28,10 @@ describe('parsePlaylistInput', () => {
     [`https://youtu.be/dQw4w9WgXcQ?list=${PL_ID}`, PL_ID],
     [`https://WWW.YOUTUBE.COM/playlist?list=${PL_ID}`, PL_ID],
   ])('extrae el ID de %s', (input, expected) => {
-    expect(parsePlaylistInput(input)).toEqual({ ok: true, playlistId: expected });
+    expect(parsePlaylistInput(input)).toEqual({
+      ok: true,
+      playlistId: expected,
+    });
   });
 
   it('pide una entrada cuando está vacía', () => {

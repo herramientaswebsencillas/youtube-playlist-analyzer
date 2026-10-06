@@ -58,8 +58,8 @@ export default function AboutPage() {
           <strong className="text-ink">YouTube</strong> y{' '}
           <strong className="text-ink">YouTube Music</strong> para encontrar
           canciones duplicadas y videos que ya no se pueden reproducir. Todo el
-          análisis ocurre dentro de tu navegador: no hay servidores
-          intermedios, cuentas ni bases de datos.
+          análisis ocurre dentro de tu navegador: no hay servidores intermedios,
+          cuentas ni bases de datos.
         </p>
       </header>
 
@@ -113,8 +113,8 @@ export default function AboutPage() {
             Esta herramienta te da, en segundos, una lista clara de esos
             problemas para que puedas limpiar y mantener tus colecciones de
             música. Es especialmente práctica para quien cura playlists grandes,
-            archiva mixes o quiere saber qué pista se «perdió» antes de buscar un
-            reemplazo.
+            archiva mixes o quiere saber qué pista se «perdió» antes de buscar
+            un reemplazo.
           </p>
         </div>
       </section>
@@ -124,10 +124,11 @@ export default function AboutPage() {
           Verificación anti-bots
         </h2>
         <p className="text-sm leading-relaxed text-muted">
-          Para evitar el uso automatizado, cada análisis que consulta a YouTube pasa primero por una
-          verificación reCAPTCHA. Normalmente es invisible; solo verás un reto
-          si el sistema detecta actividad sospechosa. Los resultados que se leen
-          desde el historial local no requieren verificación.
+          Para evitar el uso automatizado, cada análisis que consulta a YouTube
+          pasa primero por una verificación reCAPTCHA. Normalmente es invisible;
+          solo verás un reto si el sistema detecta actividad sospechosa. Los
+          resultados que se leen desde el historial local no requieren
+          verificación.
         </p>
       </section>
 
@@ -136,10 +137,9 @@ export default function AboutPage() {
           Proyecto open source
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          YouTube Playlist Analyzer es de código abierto. Puedes
-          revisar cómo funciona, reportar problemas, proponer mejoras o
-          desplegar tu propia copia. El código completo está disponible en
-          GitHub.
+          YouTube Playlist Analyzer es de código abierto. Puedes revisar cómo
+          funciona, reportar problemas, proponer mejoras o desplegar tu propia
+          copia. El código completo está disponible en GitHub.
         </p>
         <a
           href={REPO_URL}

@@ -63,6 +63,32 @@ function nextRequest(): number {
   return latestRequest;
 }
 
+/** Análisis que están consultando la API en este momento. */
+interface Run {
+  requestId: number;
+  playlistId: string;
+  /** Se borró la playlist mientras se analizaba: el resultado se descarta. */
+  discarded: boolean;
+}
+
+const runs = new Set<Run>();
+
+/**
+ * Marca como descartados los análisis en curso que cumplan `match`, para que
+ * no se guarden ni se muestren al terminar. Devuelve `true` si entre ellos
+ * estaba el que controla la pantalla (y en ese caso lo deja de controlar).
+ */
+function discardRuns(match: (run: Run) => boolean): boolean {
+  let wasCurrent = false;
+  for (const run of runs) {
+    if (!match(run)) continue;
+    run.discarded = true;
+    if (run.requestId === latestRequest) wasCurrent = true;
+  }
+  if (wasCurrent) nextRequest();
+  return wasCurrent;
+}
+
 function runAnalysis(
   set: (partial: Partial<AnalysisState>) => void,
   playlistId: string,
@@ -92,35 +118,46 @@ function runAnalysis(
   // verifica a un humano cuando realmente se va a consumir cuota, no en los
   // aciertos de caché.
   set({ status: 'loading', error: null, fromCache: false });
-  return executeCaptcha()
-    .then(() => analyzePlaylist(playlistId, previous))
-    .then((result) => {
-      const saved = saveAnalysis(result);
-      if (!isCurrent()) {
-        set({ history: loadHistory() });
-        return;
-      }
-      set({
-        status: 'success',
-        result,
-        fromCache: false,
-        error: null,
-        history: loadHistory(),
-        storageFailed: !saved,
-      });
-    })
-    .catch((err: unknown) => {
-      if (!isCurrent()) return;
-      let error: AppError;
-      if (err instanceof YouTubeApiError) {
-        error = { code: err.code, message: err.message };
-      } else if (err instanceof CaptchaError) {
-        error = { code: 'captcha-failed', message: err.message };
-      } else {
-        error = { code: 'unknown', message: 'Ocurrió un error inesperado.' };
-      }
-      set({ status: 'error', error, fromCache: false });
-    });
+  const run: Run = { requestId, playlistId, discarded: false };
+  runs.add(run);
+  return (
+    executeCaptcha()
+      // Si se descartó mientras se resolvía el reto, no se gasta cuota.
+      .then(() =>
+        run.discarded ? null : analyzePlaylist(playlistId, previous),
+      )
+      .then((result) => {
+        if (run.discarded || !result) return;
+        const saved = saveAnalysis(result);
+        if (!isCurrent()) {
+          set({ history: loadHistory() });
+          return;
+        }
+        set({
+          status: 'success',
+          result,
+          fromCache: false,
+          error: null,
+          history: loadHistory(),
+          storageFailed: !saved,
+        });
+      })
+      .catch((err: unknown) => {
+        if (run.discarded || !isCurrent()) return;
+        let error: AppError;
+        if (err instanceof YouTubeApiError) {
+          error = { code: err.code, message: err.message };
+        } else if (err instanceof CaptchaError) {
+          error = { code: 'captcha-failed', message: err.message };
+        } else {
+          error = { code: 'unknown', message: 'Ocurrió un error inesperado.' };
+        }
+        set({ status: 'error', error, fromCache: false });
+      })
+      .finally(() => {
+        runs.delete(run);
+      })
+  );
 }
 
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
@@ -205,25 +242,33 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   },
 
   removeHistory: (playlistId) => {
+    // Borrar gana: un análisis en curso de esta playlist se descarta, para
+    // que al terminar no vuelva a aparecer en el historial ni en pantalla.
+    const cancelledCurrent = discardRuns(
+      (run) => run.playlistId === playlistId,
+    );
     deleteAnalysis(playlistId);
-    const history = loadHistory();
-    const current = get().result;
-    const clearCurrent = current?.info.playlistId === playlistId;
-    // Si hay un análisis en curso se deja terminar: solo se oculta el resultado.
-    const loading = get().status === 'loading';
+    const { result, status } = get();
+    const clearResult = result?.info.playlistId === playlistId;
+    const remaining = clearResult ? null : result;
+
+    let next: Partial<AnalysisState> = {};
+    if (cancelledCurrent) {
+      // Vuelve a lo que se mostraba antes de iniciar el análisis cancelado.
+      next = { status: remaining ? 'success' : 'idle', error: null };
+    } else if (clearResult && status !== 'loading') {
+      next = { status: 'idle' };
+    }
+
     set({
-      history,
-      ...(clearCurrent
-        ? {
-            result: null,
-            fromCache: false,
-            ...(loading ? {} : { status: 'idle' as const }),
-          }
-        : {}),
+      history: loadHistory(),
+      ...(clearResult ? { result: null, fromCache: false } : {}),
+      ...next,
     });
   },
 
   clearAllHistory: () => {
+    discardRuns(() => true);
     nextRequest();
     clearHistory();
     set({ history: [], result: null, status: 'idle', fromCache: false });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDedupKey,
   deriveTrackMeta,
+  isPlaceholderTitle,
   normalizeArtist,
   normalizeTitle,
 } from './normalize';
@@ -121,5 +122,16 @@ describe('buildDedupKey', () => {
 
   it('usa solo el título si no hay artista', () => {
     expect(buildDedupKey('song', '')).toBe('song');
+  });
+});
+
+describe('isPlaceholderTitle', () => {
+  it.each([
+    ['Deleted video', true],
+    ['  private VIDEO ', true],
+    ['Deleted video (live)', false],
+    ['Bohemian Rhapsody', false],
+  ])('%s → %s', (title, expected) => {
+    expect(isPlaceholderTitle(title)).toBe(expected);
   });
 });
