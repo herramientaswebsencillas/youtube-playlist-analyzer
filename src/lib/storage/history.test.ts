@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeResult, makeVideo, PLAYLIST_ID } from '@/lib/testing/fixtures';
+import { MemoryStorage } from '@/lib/testing/memoryStorage';
 import {
   clearHistory,
   deleteAnalysis,
@@ -7,29 +8,6 @@ import {
   loadHistory,
   saveAnalysis,
 } from './history';
-
-/** LocalStorage mínimo en memoria, con opción de simular cuota llena. */
-class MemoryStorage {
-  private data = new Map<string, string>();
-  full = false;
-
-  get length() {
-    return this.data.size;
-  }
-  key(index: number) {
-    return Array.from(this.data.keys())[index] ?? null;
-  }
-  getItem(key: string) {
-    return this.data.get(key) ?? null;
-  }
-  setItem(key: string, value: string) {
-    if (this.full) throw new Error('QuotaExceededError');
-    this.data.set(key, value);
-  }
-  removeItem(key: string) {
-    this.data.delete(key);
-  }
-}
 
 const OTHER_ID = 'PLotherPlaylistId12345';
 
