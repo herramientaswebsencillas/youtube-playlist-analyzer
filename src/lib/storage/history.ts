@@ -8,6 +8,8 @@
 
 import type { AnalysisResult, HistoryEntry } from '@/types';
 import { countDuplicateItems } from '@/lib/analysis/duplicates';
+import { asRecord, toAnalysisResult } from '@/lib/analysis/validate';
+import { isPlaylistId } from '@/lib/youtube/parseInput';
 
 const HISTORY_KEY = 'ytpa:history:v1';
 const ANALYSIS_PREFIX = 'ytpa:analysis:v1:';
@@ -20,14 +22,43 @@ function analysisKey(playlistId: string): string {
   return `${ANALYSIS_PREFIX}${playlistId}`;
 }
 
-function readJson<T>(key: string): T | null {
+/**
+ * Lee y parsea una clave. El resultado no está tipado: LocalStorage es
+ * compartido por todo el origen (en github.io, con los demás sitios de la
+ * organización) y puede contener datos de otra versión o de otro sitio.
+ */
+function readJson(key: string): unknown {
   if (!isBrowser()) return null;
   try {
     const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
+    return raw ? (JSON.parse(raw) as unknown) : null;
   } catch {
     return null;
   }
+}
+
+function removeKey(key: string): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* ignorar */
+  }
+}
+
+function isHistoryEntry(value: unknown): value is HistoryEntry {
+  const e = asRecord(value);
+  return (
+    !!e &&
+    typeof e.playlistId === 'string' &&
+    isPlaylistId(e.playlistId) &&
+    typeof e.title === 'string' &&
+    typeof e.analyzedAt === 'string' &&
+    typeof e.totalItems === 'number' &&
+    typeof e.totalDuplicateItems === 'number' &&
+    typeof e.totalDuplicateGroups === 'number' &&
+    typeof e.totalUnavailable === 'number'
+  );
 }
 
 function writeJson(key: string, value: unknown): boolean {
@@ -53,17 +84,36 @@ export function toHistoryEntry(result: AnalysisResult): HistoryEntry {
   };
 }
 
-/** Devuelve el historial ordenado del análisis más reciente al más antiguo. */
+/**
+ * Devuelve el historial ordenado del análisis más reciente al más antiguo.
+ * Descarta en silencio las entradas que no tengan la forma esperada.
+ */
 export function loadHistory(): HistoryEntry[] {
-  const history = readJson<HistoryEntry[]>(HISTORY_KEY) ?? [];
-  return [...history].sort(
+  const raw = readJson(HISTORY_KEY);
+  const history = Array.isArray(raw) ? raw.filter(isHistoryEntry) : [];
+  return history.sort(
     (a, b) => Date.parse(b.analyzedAt) - Date.parse(a.analyzedAt),
   );
 }
 
-/** Recupera un análisis cacheado por ID, o `null` si no existe. */
+/**
+ * Recupera un análisis cacheado por ID, o `null` si no existe. Un valor
+ * inválido se borra para que el siguiente análisis lo reemplace.
+ */
 export function loadAnalysis(playlistId: string): AnalysisResult | null {
-  return readJson<AnalysisResult>(analysisKey(playlistId));
+  const key = analysisKey(playlistId);
+  const raw = readJson(key);
+  if (raw === null) return null;
+  try {
+    const result = toAnalysisResult(raw);
+    if (result.info.playlistId !== playlistId) {
+      throw new Error('El análisis guardado no corresponde a la playlist.');
+    }
+    return result;
+  } catch {
+    removeKey(key);
+    return null;
+  }
 }
 
 /**
@@ -85,13 +135,7 @@ export function saveAnalysis(result: AnalysisResult): boolean {
 
 /** Elimina un análisis y su entrada de historial. */
 export function deleteAnalysis(playlistId: string): void {
-  if (isBrowser()) {
-    try {
-      window.localStorage.removeItem(analysisKey(playlistId));
-    } catch {
-      /* ignorar */
-    }
-  }
+  removeKey(analysisKey(playlistId));
   const history = loadHistory().filter(
     (entry) => entry.playlistId !== playlistId,
   );

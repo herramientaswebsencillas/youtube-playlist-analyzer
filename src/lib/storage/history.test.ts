@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { makeResult, makeVideo } from '@/lib/testing/fixtures';
+import { makeResult, makeVideo, PLAYLIST_ID } from '@/lib/testing/fixtures';
 import {
   clearHistory,
   deleteAnalysis,
@@ -105,5 +105,50 @@ describe('historial en LocalStorage', () => {
   it('tolera datos corruptos', () => {
     storage.setItem('ytpa:history:v1', '{no es json');
     expect(loadHistory()).toEqual([]);
+  });
+
+  it('tolera un historial que no es un arreglo', () => {
+    storage.setItem('ytpa:history:v1', '{}');
+    expect(loadHistory()).toEqual([]);
+  });
+
+  it('descarta entradas de historial con forma inválida', () => {
+    const result = makeResult([makeVideo({ videoId: 'a', title: 'Song' })]);
+    saveAnalysis(result);
+    const valid = JSON.parse(storage.getItem('ytpa:history:v1') ?? '[]');
+    storage.setItem(
+      'ytpa:history:v1',
+      JSON.stringify([
+        null,
+        'x',
+        { playlistId: '../../x', title: 'Mala' },
+        ...valid,
+      ]),
+    );
+    expect(loadHistory().map((e) => e.playlistId)).toEqual([
+      result.info.playlistId,
+    ]);
+  });
+
+  it('descarta y borra un análisis guardado con forma inválida', () => {
+    const key = `ytpa:analysis:v1:${PLAYLIST_ID}`;
+    storage.setItem(key, JSON.stringify({ info: null, videos: 5 }));
+    expect(loadAnalysis(PLAYLIST_ID)).toBeNull();
+    expect(storage.getItem(key)).toBeNull();
+  });
+
+  it('descarta un análisis guardado bajo otro ID', () => {
+    const other = makeResult([makeVideo({ videoId: 'a', title: 'A' })], OTHER_ID);
+    storage.setItem(`ytpa:analysis:v1:${PLAYLIST_ID}`, JSON.stringify(other));
+    expect(loadAnalysis(PLAYLIST_ID)).toBeNull();
+  });
+
+  it('completa campos faltantes de un análisis guardado', () => {
+    const result = makeResult([makeVideo({ videoId: 'a', title: 'Song' })]);
+    storage.setItem(
+      `ytpa:analysis:v1:${PLAYLIST_ID}`,
+      JSON.stringify({ info: result.info, videos: result.videos, analyzedAt: result.analyzedAt }),
+    );
+    expect(loadAnalysis(PLAYLIST_ID)).toEqual(result);
   });
 });
