@@ -168,6 +168,10 @@ export default function AboutPage() {
           Privacidad
         </Link>
         <span className="mx-2">·</span>
+        <Link href="/terminos" className="hover:text-ink">
+          Términos de uso
+        </Link>
+        <span className="mx-2">·</span>
         Procesamiento 100% en el navegador.
       </footer>
     </div>

@@ -154,10 +154,18 @@ test('sobrevive a datos locales con formato inesperado', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
-test('las páginas de privacidad y «Acerca de» cargan', async ({ page }) => {
+test('las páginas de privacidad, términos y «Acerca de» cargan', async ({
+  page,
+}) => {
   await page.goto('./');
   await page.getByRole('link', { name: 'Acerca de' }).first().click();
   await expect(page).toHaveURL(/\/acerca-de\/$/);
   await page.goto('./privacidad/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await page.goto('./');
+  await page.getByRole('link', { name: 'Términos de uso' }).click();
+  await expect(page).toHaveURL(/\/terminos\/$/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Términos de uso' }),
+  ).toBeVisible();
 });

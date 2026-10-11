@@ -172,6 +172,10 @@ export default function PrivacyPage() {
         <Link href="/acerca-de" className="hover:text-ink">
           Acerca de
         </Link>
+        <span className="mx-2">·</span>
+        <Link href="/terminos" className="hover:text-ink">
+          Términos de uso
+        </Link>
       </footer>
     </div>
   );

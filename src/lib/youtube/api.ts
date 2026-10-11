@@ -28,6 +28,18 @@ const MAX_PAGES = 200;
 const REQUEST_TIMEOUT_MS = 20_000;
 /** Espera base antes del único reintento ante `rate-limit` (se le suma jitter). */
 const RATE_LIMIT_RETRY_DELAY_MS = 2_000;
+/**
+ * Lotes de `videos.list` en vuelo a la vez. Pocos, para no rozar el límite
+ * por segundo de la API, pero suficientes para no esperar uno tras otro en
+ * playlists de miles de elementos.
+ */
+const VIDEO_BATCH_CONCURRENCY = 4;
+
+/** Opciones comunes a las llamadas a la API. */
+export interface RequestOptions {
+  /** Cancela las peticiones pendientes (p. ej. al descartar el análisis). */
+  signal?: AbortSignal;
+}
 
 /** Error tipado que la UI puede mapear a un mensaje claro. */
 export class YouTubeApiError extends Error {
@@ -105,16 +117,23 @@ function timeoutError(): YouTubeApiError {
 async function apiGetOnce<T extends YtErrorBody>(
   path: string,
   params: Record<string, string>,
+  options: RequestOptions,
 ): Promise<T> {
+  options.signal?.throwIfAborted();
   const search = new URLSearchParams({ ...params, key: getApiKey() });
   const requestUrl = `${API_BASE}/${path}?${search.toString()}`;
   // El timeout cubre también la lectura del cuerpo.
-  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const signal = options.signal
+    ? AbortSignal.any([timeout, options.signal])
+    : timeout;
 
   let response: Response;
   try {
     response = await fetch(requestUrl, { method: 'GET', signal });
   } catch (err) {
+    // Una cancelación pedida por quien llama se propaga tal cual.
+    options.signal?.throwIfAborted();
     if (isTimeout(err)) throw timeoutError();
     throw new YouTubeApiError(
       'network',
@@ -126,6 +145,7 @@ async function apiGetOnce<T extends YtErrorBody>(
   try {
     body = (await response.json()) as T;
   } catch (err) {
+    options.signal?.throwIfAborted();
     if (isTimeout(err)) throw timeoutError();
     throw new YouTubeApiError('unknown', 'Respuesta inesperada de la API.');
   }
@@ -144,26 +164,34 @@ async function apiGetOnce<T extends YtErrorBody>(
 async function apiGet<T extends YtErrorBody>(
   path: string,
   params: Record<string, string>,
+  options: RequestOptions = {},
 ): Promise<T> {
   try {
-    return await apiGetOnce<T>(path, params);
+    return await apiGetOnce<T>(path, params, options);
   } catch (err) {
     if (!(err instanceof YouTubeApiError) || err.code !== 'rate-limit') {
       throw err;
     }
     const delay = RATE_LIMIT_RETRY_DELAY_MS * (1 + Math.random());
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return apiGetOnce<T>(path, params);
+    return apiGetOnce<T>(path, params, options);
   }
 }
 
 /** Obtiene los metadatos de la playlist. Lanza `not-found` si no existe. */
-export async function fetchPlaylistInfo(playlistId: string) {
-  const data = await apiGet<YtPlaylistListResponse>('playlists', {
-    part: 'snippet,contentDetails',
-    id: playlistId,
-    maxResults: '1',
-  });
+export async function fetchPlaylistInfo(
+  playlistId: string,
+  options: RequestOptions = {},
+) {
+  const data = await apiGet<YtPlaylistListResponse>(
+    'playlists',
+    {
+      part: 'snippet,contentDetails',
+      id: playlistId,
+      maxResults: '1',
+    },
+    options,
+  );
 
   const playlist = data.items?.[0];
   if (!playlist) {
@@ -184,6 +212,7 @@ export async function fetchPlaylistInfo(playlistId: string) {
 /** Obtiene todos los elementos de la playlist, recorriendo todas las páginas. */
 export async function fetchAllPlaylistItems(
   playlistId: string,
+  options: RequestOptions = {},
 ): Promise<YtPlaylistItem[]> {
   const items: YtPlaylistItem[] = [];
   let pageToken: string | undefined;
@@ -197,7 +226,11 @@ export async function fetchAllPlaylistItems(
     };
     if (pageToken) params.pageToken = pageToken;
 
-    const data = await apiGet<YtPlaylistItemsResponse>('playlistItems', params);
+    const data = await apiGet<YtPlaylistItemsResponse>(
+      'playlistItems',
+      params,
+      options,
+    );
     if (data.items) items.push(...data.items);
 
     pageToken = data.nextPageToken;
@@ -211,25 +244,50 @@ export async function fetchAllPlaylistItems(
  * Verifica qué IDs de video existen realmente y devuelve sus datos
  * (estado, snippet con descripción/canal y temas). Los IDs ausentes en la
  * respuesta corresponden a videos eliminados o inaccesibles. Se consulta en
- * lotes de hasta 50. Incluir más `part` no incrementa el costo de cuota.
+ * lotes de hasta 50, varios a la vez. Incluir más `part` no incrementa el
+ * costo de cuota.
  */
 export async function fetchVideoStatuses(
   videoIds: string[],
+  options: RequestOptions = {},
 ): Promise<Map<string, YtVideo>> {
   const result = new Map<string, YtVideo>();
   const unique = Array.from(new Set(videoIds.filter(Boolean)));
 
+  const batches: string[][] = [];
   for (let i = 0; i < unique.length; i += MAX_PAGE_SIZE) {
-    const batch = unique.slice(i, i + MAX_PAGE_SIZE);
-    const data = await apiGet<YtVideosResponse>('videos', {
-      part: 'snippet,status,topicDetails',
-      id: batch.join(','),
-      maxResults: String(MAX_PAGE_SIZE),
-    });
-    for (const video of data.items ?? []) {
-      result.set(video.id, video);
+    batches.push(unique.slice(i, i + MAX_PAGE_SIZE));
+  }
+
+  let next = 0;
+  // Tras el primer error, el resto de trabajadores no toma lotes nuevos:
+  // el análisis ya falló y seguir solo gastaría cuota.
+  let failed = false;
+  async function worker(): Promise<void> {
+    while (!failed && next < batches.length) {
+      const batch = batches[next] ?? [];
+      next += 1;
+      try {
+        const data = await apiGet<YtVideosResponse>(
+          'videos',
+          {
+            part: 'snippet,status,topicDetails',
+            id: batch.join(','),
+            maxResults: String(MAX_PAGE_SIZE),
+          },
+          options,
+        );
+        for (const video of data.items ?? []) {
+          result.set(video.id, video);
+        }
+      } catch (err) {
+        failed = true;
+        throw err;
+      }
     }
   }
 
+  const workers = Math.min(VIDEO_BATCH_CONCURRENCY, batches.length);
+  await Promise.all(Array.from({ length: workers }, worker));
   return result;
 }

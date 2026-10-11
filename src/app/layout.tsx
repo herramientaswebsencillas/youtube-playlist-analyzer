@@ -47,6 +47,11 @@ export const metadata: Metadata = {
   title: 'YouTube Playlist Analyzer',
   description:
     'Analiza playlists públicas de YouTube y YouTube Music: detecta canciones duplicadas y videos no disponibles.',
+  // GitHub Pages no permite la cabecera Referrer-Policy: se declara con
+  // <meta> para no depender del valor por defecto de cada navegador. Enviar
+  // el origen sigue siendo necesario para la restricción por referente de la
+  // clave de la API.
+  referrer: 'strict-origin-when-cross-origin',
 };
 
 export default function RootLayout({

@@ -58,17 +58,44 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+interface TagPatterns {
+  /** Grupos entre paréntesis/corchetes/llaves con una palabra clave. */
+  group: RegExp;
+  /** Una palabra clave al final del título, con su separador previo. */
+  trailing: RegExp;
+}
+
+/**
+ * Patrones compilados por lista de palabras clave. `normalizeTitle` se llama
+ * varias veces por video, así que no se reconstruyen en cada llamada.
+ */
+const tagPatternCache = new WeakMap<string[], TagPatterns>();
+
+function tagPatterns(keywords: string[]): TagPatterns {
+  let patterns = tagPatternCache.get(keywords);
+  if (!patterns) {
+    const keywordAlt = keywords.map(escapeRegExp).join('|');
+    patterns = {
+      group: new RegExp(
+        `[([{][^)\\]}]*\\b(?:${keywordAlt})\\b[^)\\]}]*[)\\]}]`,
+        'gi',
+      ),
+      trailing: new RegExp(
+        `(?:\\s*[-|/–—]\\s*|\\s+)(?:${keywordAlt})\\s*$`,
+        'i',
+      ),
+    };
+    tagPatternCache.set(keywords, patterns);
+  }
+  return patterns;
+}
+
 /**
  * Elimina grupos entre paréntesis/corchetes/llaves cuyo contenido incluya
  * alguna de las palabras clave de etiquetado.
  */
 function stripTagGroups(title: string, keywords: string[]): string {
-  const keywordAlt = keywords.map(escapeRegExp).join('|');
-  const groupPattern = new RegExp(
-    `[([{][^)\\]}]*\\b(?:${keywordAlt})\\b[^)\\]}]*[)\\]}]`,
-    'gi',
-  );
-  return title.replace(groupPattern, ' ');
+  return title.replace(tagPatterns(keywords).group, ' ');
 }
 
 /**
@@ -76,11 +103,7 @@ function stripTagGroups(title: string, keywords: string[]): string {
  * "... Remastered"), incluyendo separadores previos como `-` o `|`.
  */
 function stripTrailingTags(title: string, keywords: string[]): string {
-  const keywordAlt = keywords.map(escapeRegExp).join('|');
-  const trailingPattern = new RegExp(
-    `(?:\\s*[-|/–—]\\s*|\\s+)(?:${keywordAlt})\\s*$`,
-    'i',
-  );
+  const trailingPattern = tagPatterns(keywords).trailing;
   let current = title;
   let previous: string;
   do {

@@ -117,6 +117,13 @@ export function AnalyzerApp() {
             className="underline transition hover:text-ink"
           >
             Aviso de privacidad
+          </Link>{' '}
+          ·{' '}
+          <Link
+            href="/terminos"
+            className="underline transition hover:text-ink"
+          >
+            Términos de uso
           </Link>
           .
         </p>

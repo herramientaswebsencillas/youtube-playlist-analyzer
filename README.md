@@ -78,7 +78,9 @@ valores en **Settings → Secrets and variables → Actions**:
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 
 Además, `.github/workflows/codeql.yml` ejecuta análisis de seguridad con CodeQL
-y `.github/dependabot.yml` propone actualizaciones mensuales de dependencias.
+y `.github/dependabot.yml` propone actualizaciones mensuales de dependencias y
+de las GitHub Actions (fijadas por SHA). Cada despliegue genera un SBOM
+(CycloneDX) que queda como artefacto `sbom.cdx.json` del workflow.
 
 ### Configuración recomendada de la clave en Google Cloud
 
@@ -120,8 +122,12 @@ workflow de un commit anterior.
 ## Estructura
 
 ```
+docs/
+├─ adr/                 # Decisiones de arquitectura y su porqué
+└─ amenazas.md          # Modelo de amenazas
+e2e/                    # Pruebas E2E (Playwright) y servidor estático de ./out
 src/
-├─ app/                 # Layout, página principal, "Acerca de", "Privacidad" y estilos
+├─ app/                 # Layout, página principal, "Acerca de", "Privacidad", "Términos" y estilos
 ├─ components/          # Componentes de interfaz
 ├─ store/               # Estado global (Zustand)
 ├─ types/               # Tipos del dominio
@@ -139,14 +145,20 @@ La lógica de negocio (normalización, extracción de artista, detección de
 duplicados, clasificación de disponibilidad e import/export) vive en `src/lib` y
 es independiente de la interfaz, de modo que puede evolucionar sin afectar la UI.
 
+Las decisiones de diseño con más peso (sin backend, reCAPTCHA sin servidor,
+CSP en `<meta>`, LocalStorage como caché, solo JSON) están explicadas en
+[`docs/adr/`](docs/adr/README.md), y los riesgos que cubren, en
+[`docs/amenazas.md`](docs/amenazas.md).
+
 ## Desarrollo
 
-Requiere Node.js 22 o superior (la versión exacta está en `.nvmrc`).
+Requiere Node.js 24 o superior (la versión exacta está en `.nvmrc`).
 
 ```bash
 npm ci             # instala las dependencias exactas del lockfile
 npm run dev        # entorno de desarrollo
 npm run build      # exportación estática a ./out
+npm start          # sirve ./out en http://localhost:3000/youtube-playlist-analyzer/
 npm run typecheck  # verificación de tipos
 npm run lint       # ESLint
 npm run format     # Prettier (format:check lo verifica sin escribir)
@@ -159,9 +171,18 @@ lógica de `src/lib` (parseo de URLs, normalización, duplicados, importación,
 historial y el cliente de la API con `fetch` simulado) y el store.
 
 Las pruebas E2E (`e2e/`) sirven la exportación estática con el mismo basePath
-que GitHub Pages (`e2e/serve.mjs`) y recorren importar → ver resultados →
-exportar → historial con la CSP de producción activa. No usan la API. La
-primera vez, instala el navegador con `npx playwright install chromium`.
+que GitHub Pages (`e2e/serve.mjs`) con la CSP de producción activa. Recorren
+importar → ver resultados → exportar → historial, y el análisis de una
+playlist con las respuestas de la API y de reCAPTCHA simuladas
+(`page.route`), así que no gastan cuota. El build necesita alguna
+`NEXT_PUBLIC_YOUTUBE_API_KEY` para habilitar el análisis; el valor da igual:
+
+```bash
+NEXT_PUBLIC_YOUTUBE_API_KEY=e2e-dummy-key npm run build
+npm run test:e2e
+```
+
+La primera vez, instala el navegador con `npx playwright install chromium`.
 
 Para contribuir, consulta [CONTRIBUTING.md](CONTRIBUTING.md). Para reportar
 vulnerabilidades, [SECURITY.md](SECURITY.md).
@@ -172,6 +193,8 @@ La aplicación no tiene servidor ni analítica: los análisis se guardan solo en
 el LocalStorage del navegador. Los servicios de terceros (YouTube Data API y
 Google reCAPTCHA) se describen en la página
 [«Privacidad»](https://herramientaswebsencillas.github.io/youtube-playlist-analyzer/privacidad/).
+Las condiciones de uso están en
+[«Términos de uso»](https://herramientaswebsencillas.github.io/youtube-playlist-analyzer/terminos/).
 
 ## Licencia
 

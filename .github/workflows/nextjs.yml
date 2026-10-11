@@ -3,7 +3,10 @@
 # - En pull requests solo se ejecuta la verificación (tipos, lint, pruebas
 #   unitarias, vulnerabilidades de dependencias con `npm audit`, build y
 #   pruebas E2E sobre ese build).
-# - En pushes a main, el despliegue solo ocurre si la verificación pasa.
+# - En pushes a main, el despliegue solo ocurre si la verificación pasa, y
+#   cada build genera su SBOM.
+# - Las acciones se fijan por SHA (con la versión en un comentario);
+#   Dependabot las actualiza.
 #
 name: CI / Deploy to Pages
 
@@ -24,9 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -41,16 +44,21 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Audit production dependencies
+        # Solo producción: lo que llega al sitio publicado. Las excepciones
+        # conocidas en dependencias de desarrollo están en SECURITY.md.
         run: npm audit --omit=dev --audit-level=high
       - name: Build
         # Detecta cambios que compilan en tipos pero rompen el build (p. ej. una
-        # actualización mayor de Tailwind). Sin secrets: no hacen falta aquí.
+        # actualización mayor de Tailwind). Sin secrets: la clave es ficticia
+        # para habilitar el flujo de análisis, cuyas respuestas simula el E2E.
         run: npm run build
+        env:
+          NEXT_PUBLIC_YOUTUBE_API_KEY: e2e-dummy-key
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: E2E tests
         # Prueban el build anterior (con su CSP) sin gastar cuota de la API:
-        # los flujos parten de un JSON importado.
+        # las respuestas de la API se simulan con page.route.
         run: npm run test:e2e
 
   build:
@@ -59,18 +67,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           cache: npm
       - name: Setup Pages
         # Sin `static_site_generator`: basePath e images.unoptimized ya se
         # configuran a mano en next.config.mjs.
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Restore Next.js cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .next/cache
           # Nueva caché cuando cambian dependencias o fuentes.
@@ -80,13 +88,22 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
       - name: Install dependencies
         run: npm ci
+      - name: Generate SBOM
+        # Inventario de las versiones exactas de este despliegue (CycloneDX),
+        # disponible como artefacto del workflow.
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          file: package-lock.json
+          format: cyclonedx-json
+          artifact-name: sbom.cdx.json
+          syft-version: v1.52.0
       - name: Build with Next.js
         run: npm run build
         env:
           NEXT_PUBLIC_YOUTUBE_API_KEY: ${{ secrets.NEXT_PUBLIC_YOUTUBE_API_KEY }}
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ./out
 
@@ -107,4 +124,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
