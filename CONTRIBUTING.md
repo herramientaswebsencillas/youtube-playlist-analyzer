@@ -16,9 +16,12 @@
 - `main` siempre está desplegada: cada merge publica el sitio.
 - Trabaja en una rama (`feat/...`, `fix/...`, `docs/...`) y abre un pull
   request hacia `main`.
-- El pipeline ejecuta tipos, lint, pruebas unitarias, revisión de
-  vulnerabilidades de dependencias (`npm audit`), build y pruebas E2E. Un PR solo se integra con todos los
-  checks en verde.
+- El pipeline ejecuta tipos, lint, formato, pruebas unitarias, revisión de
+  vulnerabilidades de dependencias (`npm audit`), build y pruebas E2E. Un
+  ruleset en `main` exige PR y el check `verify` en verde: no se puede
+  hacer push directo.
+- La plantilla de PR (`.github/pull_request_template.md`) recoge la lista de
+  verificación de abajo.
 
 ## Antes de abrir el PR
 
@@ -27,15 +30,19 @@ npm run typecheck
 npm run lint
 npm run format:check   # o `npm run format` para corregir
 npm test
-npm run build
+NEXT_PUBLIC_YOUTUBE_API_KEY=e2e-dummy-key npm run build   # cualquier valor
 npm run test:e2e   # la primera vez: npx playwright install chromium
 ```
+
+- Si cambias una decisión documentada en `docs/adr/`, escribe un ADR nuevo
+  que la reemplace. Si agregas un proveedor o dominio externo, actualiza la
+  CSP y `docs/amenazas.md`.
 
 - Agrega o actualiza pruebas cuando cambies la lógica de `src/lib` (por
   ejemplo, heurísticas de normalización o el formato de importación).
 - Si cambias variables de entorno, comandos o comportamiento visible,
-  actualiza el README, `.env.local.example` o el aviso de privacidad en el
-  mismo PR.
+  actualiza el README, `.env.local.example`, el aviso de privacidad o los
+  términos de uso en el mismo PR.
 - Nunca subas claves reales: `.env.local` está en `.gitignore` y solo se
   versiona la plantilla vacía.
 

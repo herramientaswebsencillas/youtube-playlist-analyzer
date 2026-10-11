@@ -17,6 +17,8 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
 
+  # Las acciones se fijan por SHA; Dependabot actualiza el SHA y el
+  # comentario con la versión.
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:

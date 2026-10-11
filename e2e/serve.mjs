@@ -2,6 +2,8 @@
  * Servidor estático mínimo para las pruebas E2E: sirve la exportación de
  * `./out` bajo el mismo basePath que GitHub Pages, de modo que se prueba el
  * build de producción real (incluida la CSP) sin dependencias extra.
+ * `npm start` lo usa también para previsualizar el build en local
+ * (`next start` no funciona con `output: 'export'`).
  *
  * Uso: `npm run build` y después `node e2e/serve.mjs [puerto]`.
  */

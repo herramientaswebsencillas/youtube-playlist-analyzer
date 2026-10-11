@@ -32,6 +32,16 @@ La clave de YouTube Data API y la site key de reCAPTCHA son **públicas por
 diseño** (viajan en el JavaScript del sitio) y están restringidas por dominio
 en Google Cloud. Que sean visibles no es, por sí mismo, una vulnerabilidad.
 
+## Excepciones conocidas en dependencias
+
+El CI audita solo las dependencias de producción (`npm audit --omit=dev`),
+que son las que llegan al sitio publicado. Estas alertas de dependencias de
+desarrollo están aceptadas de forma explícita:
+
+| Alerta | Cadena | Motivo | Revisar |
+| --- | --- | --- | --- |
+| [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) (`braces` ≤ 3.0.3, DoS por patrones anidados) | `eslint-config-next` → `@next/eslint-plugin-next` → `fast-glob` → `micromatch` → `braces` | No existe versión corregida de `braces` (3.0.3 es la última). Solo se ejecuta al hacer lint con patrones propios del repositorio, nunca con entrada externa, y no forma parte del build publicado. | Cuando se publique una versión corregida de `braces` o `eslint-config-next` deje de depender de ella; entonces, actualizar o fijarla con `overrides`. |
+
 ## Respuesta ante incidentes
 
 Si una clave se filtra o se detecta abuso de cuota, sigue el procedimiento de

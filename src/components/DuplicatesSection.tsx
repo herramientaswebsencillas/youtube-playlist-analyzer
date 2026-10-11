@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { DuplicateGroup } from '@/types';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { EmptyState } from './primitives';
@@ -15,7 +15,8 @@ function Group({
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const panelId = `dup-${group.key.replace(/[^a-z0-9]+/gi, '-')}`;
+  // No se deriva de la clave: con títulos sin letras latinas se repetía.
+  const panelId = useId();
 
   return (
     <div className="rounded-xl border border-line bg-surface">

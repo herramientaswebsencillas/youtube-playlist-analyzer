@@ -62,6 +62,41 @@ describe('parseImportedAnalysis', () => {
     expect(videos[1]).toMatchObject({ availability: 'available', position: 1 });
   });
 
+  it('recalcula las claves de duplicados en lugar de confiar en el archivo', () => {
+    const text = JSON.stringify({
+      playlist: { playlistId: PLAYLIST_ID, title: 'Editada' },
+      videos: [
+        // Claves obsoletas o manipuladas: separarían dos copias de la misma
+        // canción y juntarían dos canciones distintas.
+        {
+          videoId: 'a',
+          title: 'Song',
+          artist: 'Queen',
+          normalizedTitle: 'x',
+          dedupKey: 'x',
+        },
+        {
+          videoId: 'b',
+          title: 'Song (HD)',
+          artist: 'Queen',
+          normalizedTitle: 'y',
+          dedupKey: 'y',
+        },
+        { videoId: 'c', title: 'Otra', artist: 'Queen', dedupKey: 'x' },
+      ],
+    });
+
+    const { videos, duplicates } = parseImportedAnalysis(text);
+
+    expect(videos[0]).toMatchObject({
+      normalizedTitle: 'song',
+      normalizedArtist: 'queen',
+      dedupKey: 'song|@|queen',
+    });
+    expect(duplicates).toHaveLength(1);
+    expect(duplicates[0]?.videos.map((v) => v.videoId)).toEqual(['a', 'b']);
+  });
+
   it.each([
     ['no es json', 'El archivo no es un JSON válido.'],
     ['[]', 'Formato de archivo no reconocido.'],

@@ -14,6 +14,7 @@ import {
   fetchAllPlaylistItems,
   fetchPlaylistInfo,
   fetchVideoStatuses,
+  type RequestOptions,
 } from '@/lib/youtube/api';
 import type {
   YtPlaylistItem,
@@ -164,20 +165,22 @@ function toPlaylistVideo(
 /**
  * Ejecuta el análisis completo de una playlist a partir de su ID.
  * `previous` es el análisis anterior (caché) usado para recuperar títulos.
- * Lanza `YouTubeApiError` ante fallos de la API.
+ * Lanza `YouTubeApiError` ante fallos de la API, o el motivo de
+ * `options.signal` si se cancela.
  */
 export async function analyzePlaylist(
   playlistId: string,
   previous?: AnalysisResult | null,
+  options: RequestOptions = {},
 ): Promise<AnalysisResult> {
   const [info, rawItems] = await Promise.all([
-    fetchPlaylistInfo(playlistId),
-    fetchAllPlaylistItems(playlistId),
+    fetchPlaylistInfo(playlistId, options),
+    fetchAllPlaylistItems(playlistId, options),
   ]);
 
   const videoIds = rawItems.map(videoIdOf).filter(Boolean);
 
-  const statuses = await fetchVideoStatuses(videoIds);
+  const statuses = await fetchVideoStatuses(videoIds, options);
 
   const previousById = new Map<string, PlaylistVideo>();
   for (const prev of previous?.videos ?? []) {

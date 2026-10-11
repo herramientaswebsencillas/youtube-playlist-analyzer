@@ -69,20 +69,24 @@ interface Run {
   playlistId: string;
   /** Se borró la playlist mientras se analizaba: el resultado se descarta. */
   discarded: boolean;
+  /** Cancela las peticiones pendientes del análisis descartado. */
+  controller: AbortController;
 }
 
 const runs = new Set<Run>();
 
 /**
  * Marca como descartados los análisis en curso que cumplan `match`, para que
- * no se guarden ni se muestren al terminar. Devuelve `true` si entre ellos
- * estaba el que controla la pantalla (y en ese caso lo deja de controlar).
+ * no se guarden ni se muestren al terminar, y cancela sus peticiones para no
+ * seguir gastando cuota. Devuelve `true` si entre ellos estaba el que
+ * controla la pantalla (y en ese caso lo deja de controlar).
  */
 function discardRuns(match: (run: Run) => boolean): boolean {
   let wasCurrent = false;
   for (const run of runs) {
     if (!match(run)) continue;
     run.discarded = true;
+    run.controller.abort();
     if (run.requestId === latestRequest) wasCurrent = true;
   }
   if (wasCurrent) nextRequest();
@@ -118,13 +122,22 @@ function runAnalysis(
   // verifica a un humano cuando realmente se va a consumir cuota, no en los
   // aciertos de caché.
   set({ status: 'loading', error: null, fromCache: false });
-  const run: Run = { requestId, playlistId, discarded: false };
+  const run: Run = {
+    requestId,
+    playlistId,
+    discarded: false,
+    controller: new AbortController(),
+  };
   runs.add(run);
   return (
     executeCaptcha()
       // Si se descartó mientras se resolvía el reto, no se gasta cuota.
       .then(() =>
-        run.discarded ? null : analyzePlaylist(playlistId, previous),
+        run.discarded
+          ? null
+          : analyzePlaylist(playlistId, previous, {
+              signal: run.controller.signal,
+            }),
       )
       .then((result) => {
         if (run.discarded || !result) return;

@@ -89,7 +89,9 @@ describe('useAnalysisStore', () => {
 
     await store().refresh(PLAYLIST_ID);
 
-    expect(analyzeMock).toHaveBeenCalledWith(PLAYLIST_ID, previous);
+    expect(analyzeMock).toHaveBeenCalledWith(PLAYLIST_ID, previous, {
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it('muestra los errores de la API', async () => {
@@ -146,6 +148,38 @@ describe('useAnalysisStore', () => {
       expect(store().history).toEqual([]);
       expect(loadHistory()).toEqual([]);
       expect(loadAnalysis(PLAYLIST_ID)).toBeNull();
+    });
+
+    it('cancela las peticiones pendientes del análisis descartado', async () => {
+      const pending = deferred<AnalysisResult>();
+      analyzeMock.mockReturnValueOnce(pending.promise);
+
+      const run = store().analyze(PLAYLIST_ID);
+      await vi.waitFor(() => expect(analyzeMock).toHaveBeenCalled());
+      const signal = analyzeMock.mock.calls[0]?.[2]?.signal;
+      expect(signal?.aborted).toBe(false);
+
+      store().removeHistory(PLAYLIST_ID);
+      expect(signal?.aborted).toBe(true);
+
+      pending.reject(signal?.reason);
+      await run;
+      expect(store()).toMatchObject({ status: 'idle', error: null });
+    });
+
+    it('un análisis reemplazado por otro no se cancela (se guarda en caché)', async () => {
+      const first = deferred<AnalysisResult>();
+      analyzeMock
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValueOnce(resultFor(OTHER_ID));
+
+      const a = store().analyze(PLAYLIST_ID);
+      await vi.waitFor(() => expect(analyzeMock).toHaveBeenCalled());
+      await store().analyze(OTHER_ID);
+
+      expect(analyzeMock.mock.calls[0]?.[2]?.signal?.aborted).toBe(false);
+      first.resolve(resultFor(PLAYLIST_ID));
+      await a;
     });
 
     it('no consume cuota si se borra mientras se resuelve el reCAPTCHA', async () => {

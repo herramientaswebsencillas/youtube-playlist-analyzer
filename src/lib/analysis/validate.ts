@@ -56,17 +56,19 @@ function parseInfo(source: Record<string, unknown>): PlaylistInfo {
   };
 }
 
-/** Reconstruye un `PlaylistVideo`, rellenando lo que falte. */
+/**
+ * Reconstruye un `PlaylistVideo`, rellenando lo que falte. Los campos
+ * normalizados y la clave de duplicados se recalculan siempre: los guardados
+ * pueden venir de reglas de normalización anteriores o de un archivo editado.
+ */
 function parseVideo(raw: unknown, index: number): PlaylistVideo {
   const v = asRecord(raw) ?? {};
   const videoId = asString(v.videoId) ?? '';
   const title = asString(v.title) ?? 'Sin título';
   const artist = asString(v.artist);
   const songTitle = asString(v.songTitle) ?? title;
-  const normalizedTitle =
-    asString(v.normalizedTitle) ?? normalizeTitle(songTitle);
-  const normalizedArtist =
-    asString(v.normalizedArtist) ?? normalizeArtist(artist);
+  const normalizedTitle = normalizeTitle(songTitle);
+  const normalizedArtist = normalizeArtist(artist);
   const availabilityRaw = asString(v.availability) as Availability | null;
   const availability =
     availabilityRaw && AVAILABILITIES.includes(availabilityRaw)
@@ -81,8 +83,7 @@ function parseVideo(raw: unknown, index: number): PlaylistVideo {
     normalizedTitle,
     artist,
     normalizedArtist,
-    dedupKey:
-      asString(v.dedupKey) ?? buildDedupKey(normalizedTitle, normalizedArtist),
+    dedupKey: buildDedupKey(normalizedTitle, normalizedArtist),
     previousTitle: asString(v.previousTitle),
     url: asString(v.url) ?? (videoId ? videoUrl(videoId) : ''),
     thumbnail: asString(v.thumbnail),

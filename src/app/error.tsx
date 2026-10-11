@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { clearHistory } from '@/lib/storage/history';
 
 /**
@@ -7,7 +8,19 @@ import { clearHistory } from '@/lib/storage/history';
  * página en blanco. La causa más probable en una app sin backend son datos
  * locales inesperados, así que se ofrece borrarlos además de reintentar.
  */
-export default function AppError({ retry }: { retry: () => void }) {
+export default function AppError({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
+  // Sin servicio de captura de errores, la consola es el único rastro que
+  // queda para diagnosticar un reporte.
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-16">
       <div
