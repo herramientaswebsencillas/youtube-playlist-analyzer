@@ -16,6 +16,11 @@ updates:
       # no a la última versión de Node: la versión mayor se sube a mano.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # ESLint 10 rompe el lint: eslint-plugin-react (que trae
+      # eslint-config-next) solo admite hasta ESLint 9. Quitar cuando
+      # eslint-config-next sea compatible con ESLint 10.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
 
   # Las acciones se fijan por SHA; Dependabot actualiza el SHA y el
   # comentario con la versión.
