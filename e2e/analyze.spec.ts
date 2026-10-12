@@ -56,14 +56,31 @@ const RECAPTCHA_STUB = `
   };
 `;
 
+/**
+ * Reto que nunca se resuelve, como cuando se cierra su ventana: reCAPTCHA
+ * no avisa de ese cierre.
+ */
+const RECAPTCHA_ABANDONED_STUB = `
+  window.grecaptcha = {
+    ready: (cb) => cb(),
+    render: () => 0,
+    reset: () => {},
+    execute: () => {},
+  };
+`;
+
 /** Peticiones a la API recibidas, por endpoint. */
 type Calls = Record<'playlists' | 'playlistItems' | 'videos', number>;
 
-async function mockApi(page: Page, override?: (route: Route) => boolean) {
+async function mockApi(
+  page: Page,
+  override?: (route: Route) => boolean,
+  recaptcha = RECAPTCHA_STUB,
+) {
   const calls: Calls = { playlists: 0, playlistItems: 0, videos: 0 };
 
   await page.route('https://www.google.com/recaptcha/**', (route) =>
-    route.fulfill({ contentType: 'text/javascript', body: RECAPTCHA_STUB }),
+    route.fulfill({ contentType: 'text/javascript', body: recaptcha }),
   );
 
   await page.route(`${API}/**`, (route) => {
@@ -188,4 +205,33 @@ test('muestra un mensaje claro cuando se agota la cuota', async ({ page }) => {
       .getByRole('alert')
       .filter({ hasText: 'Se agotó la cuota diaria de la YouTube Data API.' }),
   ).toBeVisible();
+});
+
+test('permite cancelar un reto de reCAPTCHA abandonado', async ({ page }) => {
+  const calls = await mockApi(page, undefined, RECAPTCHA_ABANDONED_STUB);
+  await openApp(page);
+  // El script de reCAPTCHA solo se pide si el build lleva site key.
+  const captchaRequested = page
+    .waitForRequest('https://www.google.com/recaptcha/**', { timeout: 5_000 })
+    .then(
+      () => true,
+      () => false,
+    );
+
+  await analyze(page);
+  const captchaEnabled = await captchaRequested;
+  test.skip(
+    !captchaEnabled && !process.env.CI,
+    'Build sin NEXT_PUBLIC_RECAPTCHA_SITE_KEY: define cualquier valor y recompila.',
+  );
+  expect(captchaEnabled, 'el build de CI debe incluir una site key').toBe(true);
+  await expect(
+    page.getByRole('button', { name: 'Analizando…' }),
+  ).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Cancelar' }).click();
+
+  await expect(page.getByRole('button', { name: 'Analizar' })).toBeEnabled();
+  await expect(page.getByText('Analizando la playlist')).toBeHidden();
+  expect(calls).toEqual({ playlists: 0, playlistItems: 0, videos: 0 });
 });

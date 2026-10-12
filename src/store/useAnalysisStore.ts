@@ -12,7 +12,11 @@ import { parsePlaylistInput } from '@/lib/youtube/parseInput';
 import { analyzePlaylist } from '@/lib/analysis/analyze';
 import { parseImportedAnalysis } from '@/lib/export/import';
 import { YouTubeApiError } from '@/lib/youtube/api';
-import { CaptchaError, executeCaptcha } from '@/lib/captcha/recaptcha';
+import {
+  CaptchaError,
+  cancelCaptcha,
+  executeCaptcha,
+} from '@/lib/captcha/recaptcha';
 import {
   clearHistory,
   deleteAnalysis,
@@ -45,6 +49,7 @@ interface AnalysisState {
   failImport: (message: string) => void;
   openFromHistory: (playlistId: string) => void;
   refresh: (playlistId: string) => Promise<void>;
+  cancelAnalysis: () => void;
   removeHistory: (playlistId: string) => void;
   clearAllHistory: () => void;
   reset: () => void;
@@ -254,6 +259,15 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     await runAnalysis(set, playlistId, true);
   },
 
+  cancelAnalysis: () => {
+    // Solo el análisis que controla la pantalla: los que ya fueron
+    // reemplazados por otra acción terminan en segundo plano y se guardan.
+    const cancelled = discardRuns((run) => run.requestId === latestRequest);
+    if (!cancelled) return;
+    // Si estaba esperando el reCAPTCHA, cierra el reto.
+    cancelCaptcha();
+    set({ status: get().result ? 'success' : 'idle', error: null });
+  },
   removeHistory: (playlistId) => {
     // Borrar gana: un análisis en curso de esta playlist se descarta, para
     // que al terminar no vuelva a aparecer en el historial ni en pantalla.

@@ -18,6 +18,12 @@
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 const SCRIPT_SRC = 'https://www.google.com/recaptcha/api.js?render=explicit';
 const HOST_ID = 'recaptcha-host';
+/**
+ * Tiempo máximo para completar el reto. reCAPTCHA no avisa cuando se cierra
+ * la ventana del reto sin resolverlo: sin este límite, el análisis quedaría
+ * esperando indefinidamente.
+ */
+export const CAPTCHA_TIMEOUT_MS = 2 * 60_000;
 
 /** Error tipado para fallos/cancelaciones de la verificación humana. */
 export class CaptchaError extends Error {
@@ -145,28 +151,77 @@ function ensureWidget(): Promise<number> {
 
 /**
  * Ejecuta el reto reCAPTCHA. Resuelve cuando se obtiene un token (humano
- * verificado) y rechaza con `CaptchaError` si falla, expira o se cancela.
+ * verificado) y rechaza con `CaptchaError` si falla, expira, se cancela o no
+ * se completa en `CAPTCHA_TIMEOUT_MS`.
  * Si no hay site key configurada, resuelve de inmediato (verificación omitida).
  */
 export async function executeCaptcha(): Promise<void> {
   if (!isCaptchaConfigured()) return;
 
-  const id = await ensureWidget();
-  const grecaptcha = window.grecaptcha;
-  if (!grecaptcha) {
-    throw new CaptchaError('reCAPTCHA no está disponible.');
-  }
-
   // Si ya había un reto pendiente (p. ej. doble clic), cancélalo.
   if (pending) settle('reject', new CaptchaError('Verificación cancelada.'));
 
   await new Promise<void>((resolve, reject) => {
-    pending = { resolve, reject };
-    try {
-      grecaptcha.reset(id);
-      grecaptcha.execute(id);
-    } catch {
-      settle('reject', new CaptchaError('No se pudo ejecutar reCAPTCHA.'));
-    }
+    const timer = setTimeout(
+      () =>
+        settle(
+          'reject',
+          new CaptchaError(
+            'La verificación tardó demasiado. Intenta de nuevo.',
+          ),
+        ),
+      CAPTCHA_TIMEOUT_MS,
+    );
+    const current = {
+      resolve: () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      reject: (error: CaptchaError) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    };
+    pending = current;
+
+    ensureWidget()
+      .then((id) => {
+        // Cancelado o vencido mientras cargaba el script: no abrir el reto.
+        if (pending !== current) return;
+        const grecaptcha = window.grecaptcha;
+        if (!grecaptcha) {
+          throw new CaptchaError('reCAPTCHA no está disponible.');
+        }
+        try {
+          grecaptcha.reset(id);
+          grecaptcha.execute(id);
+        } catch {
+          throw new CaptchaError('No se pudo ejecutar reCAPTCHA.');
+        }
+      })
+      .catch((err: unknown) => {
+        if (pending !== current) return;
+        settle(
+          'reject',
+          err instanceof CaptchaError
+            ? err
+            : new CaptchaError('No se pudo ejecutar reCAPTCHA.'),
+        );
+      });
   });
+}
+
+/**
+ * Cancela el reto en curso, si lo hay: rechaza su promesa y cierra la
+ * ventana del reto si estaba abierta.
+ */
+export function cancelCaptcha(): void {
+  if (!pending) return;
+  settle('reject', new CaptchaError('Verificación cancelada.'));
+  if (widgetId === null) return;
+  try {
+    window.grecaptcha?.reset(widgetId);
+  } catch {
+    /* ignorar */
+  }
 }

@@ -255,6 +255,73 @@ describe('useAnalysisStore', () => {
     });
   });
 
+  describe('cancelar el análisis en curso', () => {
+    it('cancela las peticiones y vuelve al estado inicial', async () => {
+      const pending = deferred<AnalysisResult>();
+      analyzeMock.mockReturnValueOnce(pending.promise);
+
+      const run = store().analyze(PLAYLIST_ID);
+      await vi.waitFor(() => expect(analyzeMock).toHaveBeenCalled());
+      const signal = analyzeMock.mock.calls[0]?.[2]?.signal;
+
+      store().cancelAnalysis();
+      expect(signal?.aborted).toBe(true);
+      expect(store()).toMatchObject({ status: 'idle', error: null });
+
+      pending.reject(signal?.reason);
+      await run;
+      expect(store()).toMatchObject({ status: 'idle', error: null });
+      expect(loadHistory()).toEqual([]);
+    });
+
+    it('no consume cuota si se cancela mientras se resuelve el reCAPTCHA', async () => {
+      const captcha = deferred<void>();
+      captchaMock.mockReturnValueOnce(captcha.promise);
+
+      const run = store().analyze(PLAYLIST_ID);
+      store().cancelAnalysis();
+      captcha.resolve();
+      await run;
+
+      expect(analyzeMock).not.toHaveBeenCalled();
+      expect(store().status).toBe('idle');
+    });
+
+    it('vuelve al resultado que se mostraba antes', async () => {
+      analyzeMock.mockResolvedValueOnce(resultFor(OTHER_ID));
+      await store().analyze(OTHER_ID);
+      const pending = deferred<AnalysisResult>();
+      analyzeMock.mockReturnValueOnce(pending.promise);
+
+      const run = store().analyze(PLAYLIST_ID);
+      await vi.waitFor(() => expect(analyzeMock).toHaveBeenCalledTimes(2));
+      store().cancelAnalysis();
+      pending.resolve(resultFor(PLAYLIST_ID));
+      await run;
+
+      expect(store().status).toBe('success');
+      expect(store().result?.info.playlistId).toBe(OTHER_ID);
+      expect(loadAnalysis(PLAYLIST_ID)).toBeNull();
+    });
+
+    it('no afecta a un análisis ya reemplazado por otra acción', async () => {
+      saveAnalysis(resultFor(OTHER_ID));
+      const first = deferred<AnalysisResult>();
+      analyzeMock.mockReturnValueOnce(first.promise);
+
+      const a = store().refresh(PLAYLIST_ID);
+      await vi.waitFor(() => expect(analyzeMock).toHaveBeenCalled());
+      store().openFromHistory(OTHER_ID);
+      store().cancelAnalysis();
+
+      expect(analyzeMock.mock.calls[0]?.[2]?.signal?.aborted).toBe(false);
+      expect(store().result?.info.playlistId).toBe(OTHER_ID);
+      first.resolve(resultFor(PLAYLIST_ID));
+      await a;
+      expect(loadAnalysis(PLAYLIST_ID)).not.toBeNull();
+    });
+  });
+
   it('borrar una entrada ajena no oculta un error visible', async () => {
     saveAnalysis(resultFor(OTHER_ID));
     await store().analyze('no es una playlist');

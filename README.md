@@ -158,7 +158,7 @@ Requiere Node.js 24 o superior (la versión exacta está en `.nvmrc`).
 npm ci             # instala las dependencias exactas del lockfile
 npm run dev        # entorno de desarrollo
 npm run build      # exportación estática a ./out
-npm start          # sirve ./out en http://localhost:3000/youtube-playlist-analyzer/
+npm start          # sirve ./out en http://127.0.0.1:3000/youtube-playlist-analyzer/
 npm run typecheck  # verificación de tipos
 npm run lint       # ESLint
 npm run format     # Prettier (format:check lo verifica sin escribir)
@@ -174,11 +174,13 @@ Las pruebas E2E (`e2e/`) sirven la exportación estática con el mismo basePath
 que GitHub Pages (`e2e/serve.mjs`) con la CSP de producción activa. Recorren
 importar → ver resultados → exportar → historial, y el análisis de una
 playlist con las respuestas de la API y de reCAPTCHA simuladas
-(`page.route`), así que no gastan cuota. El build necesita alguna
-`NEXT_PUBLIC_YOUTUBE_API_KEY` para habilitar el análisis; el valor da igual:
+(`page.route`), incluida la cancelación de un reto que no se completa, así
+que no gastan cuota. El build necesita alguna `NEXT_PUBLIC_YOUTUBE_API_KEY`
+para habilitar el análisis y alguna `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` para
+activar el reto; los valores dan igual:
 
 ```bash
-NEXT_PUBLIC_YOUTUBE_API_KEY=e2e-dummy-key npm run build
+NEXT_PUBLIC_YOUTUBE_API_KEY=e2e-dummy-key NEXT_PUBLIC_RECAPTCHA_SITE_KEY=e2e-dummy-site-key npm run build
 npm run test:e2e
 ```
 

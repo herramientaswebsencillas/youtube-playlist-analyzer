@@ -30,7 +30,7 @@ npm run typecheck
 npm run lint
 npm run format:check   # o `npm run format` para corregir
 npm test
-NEXT_PUBLIC_YOUTUBE_API_KEY=e2e-dummy-key npm run build   # cualquier valor
+NEXT_PUBLIC_YOUTUBE_API_KEY=e2e-dummy-key NEXT_PUBLIC_RECAPTCHA_SITE_KEY=e2e-dummy-site-key npm run build   # cualquier valor
 npm run test:e2e   # la primera vez: npx playwright install chromium
 ```
 
@@ -51,6 +51,24 @@ npm run test:e2e   # la primera vez: npx playwright install chromium
 Explica qué cambia y por qué, en una línea clara (por ejemplo, «Detecta
 duplicados aunque el título incluya "(Remastered 2011)"»). Evita mensajes
 genéricos como «mejoras» o «cambios».
+
+## Autoría de las contribuciones
+
+Al contribuir aceptas que tu aporte se publique bajo la [licencia MIT](LICENSE)
+del proyecto. Firma cada commit con `git commit -s`: la línea
+`Signed-off-by` certifica, según el
+[Developer Certificate of Origin](https://developercertificate.org/), que
+tienes derecho a enviar ese código bajo esa licencia.
+
+### Código generado con IA
+
+Puedes usar asistentes de IA. Si lo haces:
+
+- Revisa y entiende todo el código antes de enviarlo: respondes por él como
+  si lo hubieras escrito tú, y la firma `Signed-off-by` también lo cubre.
+- Asegúrate de que no reproduce código de terceros con una licencia
+  incompatible con MIT.
+- Menciónalo en la descripción del PR (qué herramienta y para qué parte).
 
 ## Reportes de seguridad
 

@@ -84,6 +84,25 @@ describe('cliente de la API', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('cancelar durante la espera del reintento no vuelve a llamar', async () => {
+    const fetchMock = vi.fn(async () => RATE_LIMITED);
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+
+    const promise = fetchPlaylistInfo(PLAYLIST_ID, {
+      signal: controller.signal,
+    });
+    const assertion = expect(promise).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    // Deja que llegue la primera respuesta y empiece la espera.
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('no reintenta la cuota diaria agotada', async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse(403, {
