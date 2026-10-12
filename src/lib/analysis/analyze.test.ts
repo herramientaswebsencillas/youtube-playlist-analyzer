@@ -174,4 +174,35 @@ describe('analyzePlaylist', () => {
     expect(error).toMatchObject({ code: 'missing-key' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('cancela la paginación en curso si falla otra petición', async () => {
+    let itemsSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
+        const resource = new URL(String(input)).pathname.split('/').pop();
+        if (resource === 'playlists') {
+          return {
+            ok: false,
+            status: 404,
+            json: async () => ({
+              error: { code: 404, errors: [{ reason: 'playlistNotFound' }] },
+            }),
+          } as unknown as Response;
+        }
+        // playlistItems: solo termina si se cancela.
+        itemsSignal = init?.signal ?? undefined;
+        return new Promise<Response>((_, reject) => {
+          itemsSignal?.addEventListener('abort', () =>
+            reject(itemsSignal?.reason),
+          );
+        });
+      }),
+    );
+
+    await expect(analyzePlaylist(PLAYLIST_ID)).rejects.toMatchObject({
+      code: 'not-found',
+    });
+    expect(itemsSignal?.aborted).toBe(true);
+  });
 });

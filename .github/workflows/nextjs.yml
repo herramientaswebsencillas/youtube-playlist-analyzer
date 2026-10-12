@@ -49,11 +49,13 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Build
         # Detecta cambios que compilan en tipos pero rompen el build (p. ej. una
-        # actualización mayor de Tailwind). Sin secrets: la clave es ficticia
-        # para habilitar el flujo de análisis, cuyas respuestas simula el E2E.
+        # actualización mayor de Tailwind). Sin secrets: las claves son
+        # ficticias para habilitar el análisis y el reto reCAPTCHA, cuyas
+        # respuestas simula el E2E.
         run: npm run build
         env:
           NEXT_PUBLIC_YOUTUBE_API_KEY: e2e-dummy-key
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: e2e-dummy-site-key
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: E2E tests

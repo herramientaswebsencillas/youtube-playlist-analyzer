@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 const BASE_PATH = '/youtube-playlist-analyzer';
 const ROOT = fileURLToPath(new URL('../out', import.meta.url));
 const PORT = Number(process.argv[2] ?? 4173);
+const HOST = '127.0.0.1';
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -43,7 +44,7 @@ async function resolveFile(urlPath) {
   return null;
 }
 
-createServer(async (req, res) => {
+async function handle(req, res) {
   const { pathname } = new URL(req.url ?? '/', 'http://localhost');
   if (pathname === '/') {
     res.writeHead(302, { Location: `${BASE_PATH}/` });
@@ -62,6 +63,21 @@ createServer(async (req, res) => {
     'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
   });
   createReadStream(file).pipe(res);
-}).listen(PORT, () => {
-  console.log(`Sirviendo ./out en http://localhost:${PORT}${BASE_PATH}/`);
+}
+
+// Un error en una petición (p. ej. una URL con `%` que no se puede
+// decodificar) responde con un error en lugar de tumbar el servidor.
+createServer((req, res) => {
+  handle(req, res).catch((err) => {
+    if (res.headersSent) {
+      res.destroy();
+      return;
+    }
+    const badRequest = err instanceof URIError;
+    res.writeHead(badRequest ? 400 : 500, { 'Content-Type': 'text/plain' });
+    res.end(badRequest ? 'Bad request' : 'Internal error');
+  });
+  // Solo en la propia máquina: es un servidor de pruebas, no de producción.
+}).listen(PORT, HOST, () => {
+  console.log(`Sirviendo ./out en http://${HOST}:${PORT}${BASE_PATH}/`);
 });

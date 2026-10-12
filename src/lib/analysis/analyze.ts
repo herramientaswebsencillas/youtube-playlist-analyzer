@@ -173,14 +173,25 @@ export async function analyzePlaylist(
   previous?: AnalysisResult | null,
   options: RequestOptions = {},
 ): Promise<AnalysisResult> {
+  // Si una petición falla, el análisis ya falló: se cancelan las demás para
+  // no seguir paginando y gastando cuota.
+  const controller = new AbortController();
+  const signal = options.signal
+    ? AbortSignal.any([options.signal, controller.signal])
+    : controller.signal;
+  const failFast = (err: unknown): never => {
+    controller.abort();
+    throw err;
+  };
+
   const [info, rawItems] = await Promise.all([
-    fetchPlaylistInfo(playlistId, options),
-    fetchAllPlaylistItems(playlistId, options),
+    fetchPlaylistInfo(playlistId, { signal }).catch(failFast),
+    fetchAllPlaylistItems(playlistId, { signal }).catch(failFast),
   ]);
 
   const videoIds = rawItems.map(videoIdOf).filter(Boolean);
 
-  const statuses = await fetchVideoStatuses(videoIds, options);
+  const statuses = await fetchVideoStatuses(videoIds, { signal });
 
   const previousById = new Map<string, PlaylistVideo>();
   for (const prev of previous?.videos ?? []) {

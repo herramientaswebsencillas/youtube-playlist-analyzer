@@ -44,6 +44,33 @@ desarrollo están aceptadas de forma explícita:
 
 ## Respuesta ante incidentes
 
-Si una clave se filtra o se detecta abuso de cuota, sigue el procedimiento de
-[Operación](README.md#operación) del README: rotar la clave, actualizar el
-secret en GitHub y redeplegar.
+### Clave filtrada o abuso de cuota
+
+Sigue el procedimiento de [Operación](README.md#operación) del README: rotar
+la clave, actualizar el secret en GitHub y redeplegar.
+
+### Sitio comprometido
+
+Por ejemplo, una dependencia o acción maliciosa que llegó al build, un script
+inyectado o un despliegue que no viene de `main`. El objetivo de la primera
+hora es dejar de servir el código malicioso; la investigación viene después.
+
+1. **Retirar el sitio.** En *Settings → Pages*, despublica el sitio
+   (*Unpublish site*) y desactiva el workflow *CI / Deploy to Pages* en
+   *Actions* para que ningún push lo vuelva a publicar.
+2. **Identificar el origen.** Revisa en *Actions* qué ejecución hizo el
+   despliegue afectado y qué commit construyó. Compara su SBOM (artefacto
+   `sbom.cdx.json`) con el del último despliegue sano para ver qué
+   dependencias cambiaron, y revisa los PR y las actualizaciones de
+   Dependabot recientes.
+3. **Corregir.** Revierte el commit o fija la versión sana de la dependencia
+   (`overrides` en `package.json` si es transitiva). Si el atacante pudo
+   leer secrets del workflow, rota también la clave de la API y la site key
+   de reCAPTCHA.
+4. **Volver a publicar.** Reactiva el workflow, comprueba que `verify` pasa
+   y verifica el sitio publicado antes de dar el incidente por cerrado.
+5. **Avisar.** Publica un *security advisory* en el repositorio con qué pasó,
+   el intervalo de fechas afectado y qué debe hacer quien usó el sitio
+   (por ejemplo, borrar los datos del sitio en el navegador). La aplicación
+   no tiene cuentas ni datos personales en servidores, así que no hay
+   personas a las que notificar individualmente.

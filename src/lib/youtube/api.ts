@@ -173,9 +173,25 @@ async function apiGet<T extends YtErrorBody>(
       throw err;
     }
     const delay = RATE_LIMIT_RETRY_DELAY_MS * (1 + Math.random());
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    await sleep(delay, options.signal);
     return apiGetOnce<T>(path, params, options);
   }
+}
+
+/** Espera `ms`, o rechaza con el motivo de `signal` si se cancela antes. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 /** Obtiene los metadatos de la playlist. Lanza `not-found` si no existe. */
