@@ -5,6 +5,10 @@
 #   pruebas E2E sobre ese build).
 # - En pushes a main, el despliegue solo ocurre si la verificación pasa, y
 #   cada build genera su SBOM.
+# - En los PR de Dependabot con actualizaciones de parche o menores, si la
+#   verificación pasa, el job `automerge` fusiona el PR y lanza este mismo
+#   workflow sobre main para desplegar (un merge con GITHUB_TOKEN no dispara
+#   el evento push).
 # - Las acciones se fijan por SHA (con la versión en un comentario);
 #   Dependabot las actualiza.
 #
@@ -127,3 +131,36 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  automerge:
+    # `verify` es el job que compila y prueba en los PR; `build` y `deploy`
+    # se saltan en pull_request, así que no sirven como dependencia aquí.
+    needs: verify
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - name: Merge and deploy
+        # En PR agrupados, update-type es el cambio más alto del grupo: si
+        # alguna dependencia sube de versión mayor, se deja para revisión.
+        # --match-head-commit evita fusionar si llegó un commit no verificado.
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA"
+          gh workflow run nextjs.yml --ref main
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
