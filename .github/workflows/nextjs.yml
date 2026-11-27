@@ -153,11 +153,14 @@ jobs:
         # En PR agrupados, update-type es el cambio más alto del grupo: si
         # alguna dependencia sube de versión mayor, se deja para revisión.
         # --match-head-commit evita fusionar si llegó un commit no verificado.
+        # --delete-branch: el ajuste delete_branch_on_merge del repo no se
+        # aplica a los merges hechos con GITHUB_TOKEN (en el PR #29 GitHub no
+        # borró la rama; lo hizo Dependabot después), así que se borra aquí.
         if: >-
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.metadata.outputs.update-type == 'version-update:semver-minor'
         run: |
-          gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA"
+          gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA" --delete-branch
           gh workflow run nextjs.yml --ref main
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
